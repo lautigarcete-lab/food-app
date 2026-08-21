@@ -3,11 +3,12 @@ import Header from '../components/Header.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import Modal from '../components/Modal.jsx';
 import CerrarVentaModal from './CerrarVentaModal.jsx';
+import CierreJornadaModal from './CierreJornadaModal.jsx';
 import BurgerMascot from '../components/BurgerMascot.jsx';
 import { listarPlatos } from '../db/repositories/platosRepo.js';
 import { listarCombos } from '../db/repositories/combosRepo.js';
 import { formatMoney } from '../utils/money.js';
-import { IconCerrar } from '../components/icons.jsx';
+import { IconCerrar, IconCierre } from '../components/icons.jsx';
 
 const claveDe = (tipo, refId) => `${tipo}:${refId}`;
 
@@ -27,6 +28,7 @@ export default function VenderPage() {
   const [cobrando, setCobrando] = useState(false);
   const [cobroRapido, setCobroRapido] = useState(false);
   const [medioPagoRapido, setMedioPagoRapido] = useState('efectivo');
+  const [verCierre, setVerCierre] = useState(false);
 
   useEffect(() => {
     Promise.all([listarPlatos(), listarCombos()])
@@ -104,7 +106,22 @@ export default function VenderPage() {
 
   return (
     <div className="page">
-      <Header titulo="Vender" accion={<BurgerMascot size={36} variant={carrito.length > 0 ? 'success' : 'normal'} />} />
+      <Header
+        titulo="Vender"
+        accion={
+          <div className="header-acciones">
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setVerCierre(true)}
+              aria-label="Cierre de jornada"
+            >
+              <IconCierre width={20} height={20} />
+            </button>
+            <BurgerMascot size={48} variant="normal" />
+          </div>
+        }
+      />
       <div className="page__content page__content--venta">
         {cargando ? (
           <p className="ayuda-texto">Cargando…</p>
@@ -254,6 +271,8 @@ export default function VenderPage() {
           onVentaCerrada={handleVentaCerrada}
         />
       )}
+
+      {verCierre && <CierreJornadaModal onClose={() => setVerCierre(false)} />}
     </div>
   );
 }

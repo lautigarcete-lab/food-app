@@ -2,32 +2,38 @@ import React from 'react';
 
 export default function BurgerMascot({ size = 100, variant = 'normal', className = '' }) {
   // variants: 'normal' (cobro/ticket), 'success' (venta exitosa/festejo), 'balance' (cierre/calculadora)
+  // Los ids de gradientes/filtros van prefijados con "fudi" para que no choquen
+  // cuando hay más de una mascota montada a la vez (ej. la del header de
+  // Vender y la del modal de venta exitosa abierto encima).
   return (
-    <div className={`inline-flex items-center justify-center select-none ${className}`} style={{ width: size, height: size }}>
+    <div
+      className={`mascota${className ? ` ${className}` : ''}`}
+      style={{ width: size, height: size, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none' }}
+    >
       <svg viewBox="0 0 200 210" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           {/* Sombra base suave */}
-          <radialGradient id="floorShadow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#2A1B12" stopOpacity="0.35" />
+          <radialGradient id="fudiFloorShadow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#2A1B12" stopOpacity="0.3" />
             <stop offset="100%" stopColor="#2A1B12" stopOpacity="0" />
           </radialGradient>
 
           {/* Degradado Pan Brioche Realista (Dorado Tostado) */}
-          <radialGradient id="bunTopGrad" cx="45%" cy="30%" r="65%">
+          <radialGradient id="fudiBunTop" cx="45%" cy="30%" r="65%">
             <stop offset="0%" stopColor="#FDE3B2" />
             <stop offset="35%" stopColor="#DF9B42" />
             <stop offset="75%" stopColor="#AF631F" />
             <stop offset="100%" stopColor="#7E3A0B" />
           </radialGradient>
 
-          <linearGradient id="bunBottomGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id="fudiBunBottom" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#EEAC57" />
             <stop offset="60%" stopColor="#C87A28" />
             <stop offset="100%" stopColor="#7E3A0B" />
           </linearGradient>
 
           {/* Degradado Medallón de Carne Grillada */}
-          <linearGradient id="pattyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id="fudiPatty" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#5A2E1B" />
             <stop offset="35%" stopColor="#3C1A0D" />
             <stop offset="70%" stopColor="#4A2212" />
@@ -35,35 +41,35 @@ export default function BurgerMascot({ size = 100, variant = 'normal', className
           </linearGradient>
 
           {/* Degradado Queso Cheddar Fundido */}
-          <linearGradient id="cheeseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id="fudiCheese" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#FFF176" />
             <stop offset="40%" stopColor="#FBBF24" />
             <stop offset="100%" stopColor="#D97706" />
           </linearGradient>
 
           {/* Degradado Tomate y Salsa */}
-          <linearGradient id="tomatoGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id="fudiTomato" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#FF7676" />
             <stop offset="60%" stopColor="#DC2626" />
             <stop offset="100%" stopColor="#991B1B" />
           </linearGradient>
 
           {/* Degradado Lechuga Fresca */}
-          <linearGradient id="lettuceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id="fudiLettuce" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="#6EE7B7" />
             <stop offset="60%" stopColor="#10B981" />
             <stop offset="100%" stopColor="#047857" />
           </linearGradient>
 
           {/* Brillo en ojos */}
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="1" result="blur" />
+          <filter id="fudiGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="0.8" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
 
         {/* 0. SOMBRA EN EL SUELO */}
-        <ellipse cx="100" cy="200" rx="65" ry="8" fill="url(#floorShadow)" />
+        <ellipse cx="100" cy="200" rx="65" ry="8" fill="url(#fudiFloorShadow)" />
 
         {/* 1. PIERNAS Y ZAPATOS DE TRABAJO */}
         <rect x="68" y="165" width="10" height="22" rx="4" fill="#6B391F" />
@@ -78,14 +84,14 @@ export default function BurgerMascot({ size = 100, variant = 'normal', className
         <rect x="125" y="193" width="18" height="3" fill="#111827" />
 
         {/* 2. PAN INFERIOR REALISTA */}
-        <path d="M38 145 C38 145 42 172 100 172 C158 172 162 145 162 145 Z" fill="url(#bunBottomGrad)" />
+        <path d="M38 145 C38 145 42 172 100 172 C158 172 162 145 162 145 Z" fill="url(#fudiBunBottom)" />
         <ellipse cx="100" cy="146" rx="62" ry="7" fill="#C87A28" opacity="0.6" />
 
         {/* 3. HOJAS DE LECHUGA CON ONDULACIONES */}
-        <path d="M30 138 C36 132 44 144 54 138 C64 132 72 144 82 137 C92 131 100 143 110 137 C120 131 130 144 140 138 C150 132 158 144 168 138 C172 135 174 143 166 148 C150 152 48 152 32 147 C28 143 26 141 30 138 Z" fill="url(#lettuceGrad)" />
+        <path d="M30 138 C36 132 44 144 54 138 C64 132 72 144 82 137 C92 131 100 143 110 137 C120 131 130 144 140 138 C150 132 158 144 168 138 C172 135 174 143 166 148 C150 152 48 152 32 147 C28 143 26 141 30 138 Z" fill="url(#fudiLettuce)" />
 
         {/* 4. MEDALLÓN DE CARNE TEXTURADO */}
-        <rect x="30" y="118" width="140" height="26" rx="13" fill="url(#pattyGrad)" />
+        <rect x="30" y="118" width="140" height="26" rx="13" fill="url(#fudiPatty)" />
         {/* Textura grill/costra */}
         <circle cx="50" cy="128" r="2.5" fill="#220B03" opacity="0.8" />
         <circle cx="75" cy="132" r="3" fill="#220B03" opacity="0.7" />
@@ -94,13 +100,13 @@ export default function BurgerMascot({ size = 100, variant = 'normal', className
         <path d="M42 125 Q60 130 80 124 Q110 132 140 125" stroke="#1A0701" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
 
         {/* 5. QUESO CHEDDAR DERRETIDO */}
-        <path d="M32 118 L168 118 L160 130 L146 118 L124 136 L100 120 L76 134 L56 118 L42 129 Z" fill="url(#cheeseGrad)" />
+        <path d="M32 118 L168 118 L160 130 L146 118 L124 136 L100 120 L76 134 L56 118 L42 129 Z" fill="url(#fudiCheese)" />
 
         {/* 6. TOMATE / SALSA */}
-        <path d="M36 106 Q100 114 164 106 C166 114 158 120 158 120 L42 120 C42 120 34 114 36 106 Z" fill="url(#tomatoGrad)" />
+        <path d="M36 106 Q100 114 164 106 C166 114 158 120 158 120 L42 120 C42 120 34 114 36 106 Z" fill="url(#fudiTomato)" />
 
         {/* 7. PAN SUPERIOR (BRIOCHE TOSTADO VOLUMÉTRICO) */}
-        <path d="M28 106 C28 50 58 32 100 32 C142 32 172 50 172 106 C172 112 28 112 28 106 Z" fill="url(#bunTopGrad)" />
+        <path d="M28 106 C28 50 58 32 100 32 C142 32 172 50 172 106 C172 112 28 112 28 106 Z" fill="url(#fudiBunTop)" />
         {/* Reflejo de luz superior */}
         <ellipse cx="90" cy="46" rx="42" ry="12" fill="#FFFFFF" opacity="0.25" />
 
@@ -131,12 +137,12 @@ export default function BurgerMascot({ size = 100, variant = 'normal', className
         {/* 10. OJOS GRANDES EXPRESIVOS */}
         {/* Ojo Izquierdo */}
         <circle cx="70" cy="80" r="11" fill="#18110D" />
-        <circle cx="67" cy="76" r="4.5" fill="#FFFFFF" filter="url(#glow)" />
+        <circle cx="67" cy="76" r="4.5" fill="#FFFFFF" filter="url(#fudiGlow)" />
         <circle cx="73" cy="83" r="2.2" fill="#FFFFFF" />
 
         {/* Ojo Derecho */}
         <circle cx="130" cy="80" r="11" fill="#18110D" />
-        <circle cx="127" cy="76" r="4.5" fill="#FFFFFF" filter="url(#glow)" />
+        <circle cx="127" cy="76" r="4.5" fill="#FFFFFF" filter="url(#fudiGlow)" />
         <circle cx="133" cy="83" r="2.2" fill="#FFFFFF" />
 
         {/* 11. BOCA DINÁMICA SEGÚN ESTADO */}

@@ -109,7 +109,7 @@ export default function CerrarVentaModal({
       >
         <div className="form">
           <div className="venta-ok">
-            <BurgerMascot size={90} variant="success" className="venta-ok__mascota" />
+            <BurgerMascot size={110} variant="success" className="venta-ok__mascota" />
             <strong>{formatMoney(total)}</strong>
             <small>
               {tipoPago === 'fiado'
