@@ -1,272 +1,178 @@
-import { useEffect, useState } from 'react';
-import Modal from '../components/Modal.jsx';
-import {
-  UNIDADES,
-  crearInsumo,
-  actualizarInsumo,
-  eliminarInsumo,
-  ajustarStock,
-  listarMovimientos,
-  calcularCostoUnitario,
-} from '../db/repositories/insumosRepo.js';
-import { formatMoney, toNumber } from '../utils/money.js';
+import React, { useState, useEffect } from 'react';
+import { insumosRepo } from '../db/repositories/insumosRepo';
+import { formatMoney } from '../utils/money';
+import BurgerMascot from '../components/BurgerMascot';
 
-const ETIQUETA_MOVIMIENTO = {
-  compra: 'Ingreso de stock',
-  merma: 'Merma',
-  ajuste: 'Ajuste manual',
-  venta: 'Descuento por venta',
-};
-
-export default function InsumoFormModal({ insumo, onClose, onGuardado, onEliminado }) {
-  const esEdicion = Boolean(insumo);
-
-  const [nombre, setNombre] = useState(insumo?.nombre || '');
-  const [unidad, setUnidad] = useState(insumo?.unidad || 'unidad');
-  const [stockInicial, setStockInicial] = useState(insumo ? String(insumo.stock) : '0');
-  const [stockMinimo, setStockMinimo] = useState(insumo ? String(insumo.stockMinimo) : '0');
-  const [precioEnvase, setPrecioEnvase] = useState(insumo ? String(insumo.precioEnvase || '') : '');
-  const [contenidoEnvase, setContenidoEnvase] = useState(insumo ? String(insumo.contenidoEnvase || '') : '');
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState('');
-
-  const [movimientos, setMovimientos] = useState([]);
-  const [tipoAjuste, setTipoAjuste] = useState(null); // 'compra' | 'merma' | null
-  const [cantidadAjuste, setCantidadAjuste] = useState('');
-  const [motivoAjuste, setMotivoAjuste] = useState('');
-  const [ajustando, setAjustando] = useState(false);
+export default function InsumoFormModal({ insumoEditar, onClose, onGuardado }) {
+  const [nombre, setNombre] = useState('');
+  const [precioEnvase, setPrecioEnvase] = useState('');
+  const [contenidoEnvase, setContenidoEnvase] = useState('');
+  const [unidad, setUnidad] = useState('gr');
+  const [stockActualEnvases, setStockActualEnvases] = useState('1');
 
   useEffect(() => {
-    if (esEdicion) {
-      listarMovimientos(insumo.id).then(setMovimientos).catch(() => {});
+    if (insumoEditar) {
+      setNombre(insumoEditar.nombre || '');
+      setPrecioEnvase(insumoEditar.precioEnvase || insumoEditar.costoTotal || '');
+      setContenidoEnvase(insumoEditar.contenidoEnvase || insumoEditar.cantidadBase || '');
+      setUnidad(insumoEditar.unidad || 'gr');
+      setStockActualEnvases(insumoEditar.stockEnvases || '1');
     }
-  }, [esEdicion, insumo]);
+  }, [insumoEditar]);
 
-  const costoUnitarioCalculado = calcularCostoUnitario(toNumber(precioEnvase), toNumber(contenidoEnvase));
+  const precioNum = parseFloat(precioEnvase) || 0;
+  const contenidoNum = parseFloat(contenidoEnvase) || 0;
+  const costoUnitarioBase = (precioNum > 0 && contenidoNum > 0) ? (precioNum / contenidoNum) : 0;
 
-  async function handleGuardar(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!nombre.trim()) {
-      setError('Ingresá un nombre.');
-      return;
-    }
-    setGuardando(true);
-    setError('');
-    try {
-      if (esEdicion) {
-        await actualizarInsumo(insumo.id, {
-          nombre,
-          unidad,
-          stockMinimo: toNumber(stockMinimo),
-          precioEnvase: toNumber(precioEnvase),
-          contenidoEnvase: toNumber(contenidoEnvase),
-        });
-      } else {
-        await crearInsumo({
-          nombre,
-          unidad,
-          stock: toNumber(stockInicial),
-          stockMinimo: toNumber(stockMinimo),
-          precioEnvase: toNumber(precioEnvase),
-          contenidoEnvase: toNumber(contenidoEnvase),
-        });
-      }
-      onGuardado();
-    } catch (err) {
-      setError(err.message || 'No se pudo guardar el insumo.');
-    } finally {
-      setGuardando(false);
-    }
-  }
+    if (!nombre.trim() || precioNum <= 0 || contenidoNum <= 0) return;
 
-  async function handleEliminar() {
-    if (!window.confirm(`¿Eliminar "${insumo.nombre}"? Los platos que lo usan en su receta van a quedar sin ese insumo.`)) return;
-    await eliminarInsumo(insumo.id);
-    onEliminado();
-  }
+    const datosInsumo = {
+      nombre: nombre.trim(),
+      precioEnvase: precioNum,
+      contenidoEnvase: contenidoNum,
+      unidad,
+      costoUnitario: costoUnitarioBase,
+      stockEnvases: parseFloat(stockActualEnvases) || 0,
+      stockTotalBase: (parseFloat(stockActualEnvases) || 0) * contenidoNum
+    };
 
-  async function handleConfirmarAjuste() {
-    const cantidad = toNumber(cantidadAjuste);
-    if (cantidad <= 0) {
-      setError('Ingresá una cantidad mayor a cero.');
-      return;
+    if (insumoEditar?.id) {
+      await insumosRepo.actualizar(insumoEditar.id, datosInsumo);
+    } else {
+      await insumosRepo.crear(datosInsumo);
     }
-    if (tipoAjuste === 'merma' && !motivoAjuste.trim()) {
-      setError('Indicá el motivo de la merma (dañado, vencido, etc.).');
-      return;
-    }
-    setAjustando(true);
-    setError('');
-    try {
-      const delta = tipoAjuste === 'merma' ? -cantidad : cantidad;
-      const { movimiento } = await ajustarStock(insumo.id, delta, { tipo: tipoAjuste, motivo: motivoAjuste });
-      setMovimientos((prev) => [movimiento, ...prev].slice(0, 5));
-      setTipoAjuste(null);
-      setCantidadAjuste('');
-      setMotivoAjuste('');
-      onGuardado({ mantenerAbierto: true });
-    } catch (err) {
-      setError(err.message || 'No se pudo registrar el ajuste.');
-    } finally {
-      setAjustando(false);
-    }
-  }
+
+    onGuardado();
+  };
 
   return (
-    <Modal titulo={esEdicion ? 'Editar insumo' : 'Nuevo insumo'} onClose={onClose}>
-      <form className="form" onSubmit={handleGuardar}>
-        <label className="campo">
-          <span>Nombre del insumo</span>
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Harina" autoFocus />
-        </label>
-
-        <div className="campo-fila">
-          <label className="campo">
-            <span>Unidad</span>
-            <select value={unidad} onChange={(e) => setUnidad(e.target.value)}>
-              {UNIDADES.map((u) => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-          </label>
-
-          {!esEdicion && (
-            <label className="campo">
-              <span>Stock inicial</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={stockInicial}
-                onChange={(e) => setStockInicial(e.target.value)}
-              />
-            </label>
-          )}
-        </div>
-
-        <div className="campo-fila">
-          <label className="campo">
-            <span>Stock mínimo (alerta)</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={stockMinimo}
-              onChange={(e) => setStockMinimo(e.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className="campo-fila">
-          <label className="campo">
-            <span>Precio del envase</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={precioEnvase}
-              onChange={(e) => setPrecioEnvase(e.target.value)}
-              placeholder="$ 0"
-            />
-          </label>
-          <label className="campo">
-            <span>Contenido del envase ({unidad})</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={contenidoEnvase}
-              onChange={(e) => setContenidoEnvase(e.target.value)}
-              placeholder="0"
-            />
-          </label>
-        </div>
-
-        <div className="costo-calculado">
-          <small>Costo unitario calculado</small>
-          <strong>
-            {costoUnitarioCalculado > 0
-              ? `${formatMoney(costoUnitarioCalculado)} / ${unidad}`
-              : '— cargá precio y contenido —'}
-          </strong>
-        </div>
-
-        {esEdicion && (
-          <div className="stock-actual">
-            Stock actual: <strong>{insumo.stock} {insumo.unidad}</strong>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            <BurgerMascot size={40} variant="normal" />
+            <h2 className="text-lg font-black text-gray-900">
+              {insumoEditar ? 'Editar Insumo' : 'Nuevo Insumo'}
+            </h2>
           </div>
-        )}
+          <button onClick={onClose} className="text-gray-400 font-bold text-xl p-1">✕</button>
+        </div>
 
-        {error && <p className="mensaje-error">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+          <div>
+            <label className="block text-[11px] font-black text-gray-700 uppercase tracking-wider mb-1">
+              Nombre del Insumo
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Ej: Azúcar Mascabo, Pan Brioche, Queso Cheddar"
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              className="w-full text-sm font-semibold px-3.5 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white outline-none"
+            />
+          </div>
 
-        <button type="submit" className="btn btn--primario" disabled={guardando}>
-          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear insumo'}
-        </button>
-      </form>
-
-      {esEdicion && (
-        <div className="seccion-ajuste">
-          <h3>Ajustar stock</h3>
-          {!tipoAjuste ? (
-            <div className="campo-fila">
-              <button type="button" className="btn btn--secundario" onClick={() => setTipoAjuste('compra')}>
-                + Agregar stock
-              </button>
-              <button type="button" className="btn btn--peligro-suave" onClick={() => setTipoAjuste('merma')}>
-                − Registrar merma
-              </button>
+          <div>
+            <label className="block text-[11px] font-black text-gray-700 uppercase tracking-wider mb-1">
+              Unidad de Medida
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'gr', label: 'Gramos (gr)' },
+                { id: 'ml', label: 'Mililitros (ml)' },
+                { id: 'u', label: 'Unidades (u)' }
+              ].map(u => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => setUnidad(u.id)}
+                  className={`py-2 text-xs font-black rounded-xl border ${
+                    unidad === u.id
+                      ? 'bg-[#10B981] text-white border-emerald-700'
+                      : 'bg-gray-50 text-gray-700 border-gray-200'
+                  }`}
+                >
+                  {u.label}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="form">
-              <label className="campo">
-                <span>Cantidad ({insumo.unidad})</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-black text-gray-700 uppercase tracking-wider mb-1">
+                Contenido por Envase
+              </label>
+              <div className="relative">
                 <input
                   type="number"
-                  inputMode="decimal"
-                  autoFocus
-                  value={cantidadAjuste}
-                  onChange={(e) => setCantidadAjuste(e.target.value)}
+                  step="any"
+                  required
+                  placeholder="Ej: 800 o 1000"
+                  value={contenidoEnvase}
+                  onChange={e => setContenidoEnvase(e.target.value)}
+                  className="w-full text-sm font-semibold px-3 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white outline-none"
                 />
-              </label>
-              <label className="campo">
-                <span>Motivo {tipoAjuste === 'merma' ? '(obligatorio)' : '(opcional)'}</span>
-                <input
-                  value={motivoAjuste}
-                  onChange={(e) => setMotivoAjuste(e.target.value)}
-                  placeholder={tipoAjuste === 'merma' ? 'Ej: se venció, se cayó' : 'Ej: compra proveedor'}
-                />
-              </label>
-              <div className="campo-fila">
-                <button type="button" className="btn btn--fantasma" onClick={() => setTipoAjuste(null)}>
-                  Cancelar
-                </button>
-                <button type="button" className="btn btn--primario" onClick={handleConfirmarAjuste} disabled={ajustando}>
-                  {ajustando ? 'Guardando…' : 'Confirmar'}
-                </button>
+                <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400 uppercase">
+                  {unidad}
+                </span>
               </div>
             </div>
-          )}
 
-          {movimientos.length > 0 && (
-            <div className="lista-movimientos">
-              <h4>Últimos movimientos</h4>
-              {movimientos.map((m) => (
-                <div key={m.id} className="movimiento-item">
-                  <span>{ETIQUETA_MOVIMIENTO[m.tipo] || m.tipo}</span>
-                  <span className={m.delta < 0 ? 'texto-negativo' : 'texto-positivo'}>
-                    {m.delta > 0 ? '+' : ''}{m.delta} {insumo.unidad}
-                  </span>
-                  {m.motivo && <small>{m.motivo}</small>}
-                </div>
-              ))}
+            <div>
+              <label className="block text-[11px] font-black text-gray-700 uppercase tracking-wider mb-1">
+                Precio del Envase ($)
+              </label>
+              <input
+                type="number"
+                step="any"
+                required
+                placeholder="Ej: 1500"
+                value={precioEnvase}
+                onChange={e => setPrecioEnvase(e.target.value)}
+                className="w-full text-sm font-semibold px-3 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white outline-none"
+              />
+            </div>
+          </div>
+
+          {costoUnitarioBase > 0 && (
+            <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black text-amber-900">Costo real calculado:</span>
+                <span className="text-sm font-black text-amber-900">
+                  {formatMoney(costoUnitarioBase)} <span className="text-xs font-normal">por {unidad}</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                (Si usas 100 {unidad} en un plato, costará {formatMoney(costoUnitarioBase * 100)})
+              </p>
             </div>
           )}
 
-          {insumo.costoUnitario > 0 && (
-            <p className="ayuda-texto">Costo unitario actual: {formatMoney(insumo.costoUnitario)}</p>
-          )}
+          <div>
+            <label className="block text-[11px] font-black text-gray-700 uppercase tracking-wider mb-1">
+              Envases en Stock
+            </label>
+            <input
+              type="number"
+              step="any"
+              value={stockActualEnvases}
+              onChange={e => setStockActualEnvases(e.target.value)}
+              className="w-full text-sm font-semibold px-3 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white outline-none"
+            />
+          </div>
 
-          <button type="button" className="btn btn--texto-peligro" onClick={handleEliminar}>
-            Eliminar insumo
+          <button
+            type="submit"
+            className="w-full btn-pos bg-[#10B981] hover:bg-emerald-700 text-white py-3 font-black text-base shadow-lg shadow-emerald-200 mt-2"
+          >
+            Guardar Insumo ✓
           </button>
-        </div>
-      )}
-    </Modal>
+        </form>
+      </div>
+    </div>
   );
 }
