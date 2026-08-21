@@ -1,187 +1,138 @@
-import { useEffect, useState } from 'react';
-import Modal from '../components/Modal.jsx';
-import { crearPlato, actualizarPlato, eliminarPlato, listarCategorias } from '../db/repositories/platosRepo.js';
-import { listarInsumos } from '../db/repositories/insumosRepo.js';
-import { leerYRedimensionarImagen } from '../utils/image.js';
-import { toNumber } from '../utils/money.js';
-import { IconCerrar } from '../components/icons.jsx';
+import React, { useState } from 'react';
+import { X, Info, Plus, Minus } from 'lucide-react';
+import { savePlato, getInsumos, formatoMoneda } from '../lib/db';
 
-export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado }) {
-  const esEdicion = Boolean(plato);
+export default function PlatoFormModal({ platoExistente, onClose, onGuardado }) {
+  const insumosDisponibles = getInsumos();
+  const [nombre, setNombre] = useState(platoExistente?.nombre || '');
+  const [precio, setPrecio] = useState(platoExistente?.precio ?? '');
+  const [mostrarInsumos, setMostrarInsumos] = useState(
+    Boolean(platoExistente?.insumos?.length)
+  );
+  const [insumosSeleccionados, setInsumosSeleccionados] = useState(
+    platoExistente?.insumos || [] // [{ insumoId, cantidad }]
+  );
 
-  const [nombre, setNombre] = useState(plato?.nombre || '');
-  const [precio, setPrecio] = useState(plato ? String(plato.precio) : '');
-  const [categoria, setCategoria] = useState(plato?.categoria || '');
-  const [foto, setFoto] = useState(plato?.foto || null);
-  const [receta, setReceta] = useState(plato?.receta?.length ? plato.receta : []);
-  const [insumosDisponibles, setInsumosDisponibles] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    listarInsumos().then(setInsumosDisponibles).catch(() => {});
-    listarCategorias().then(setCategorias).catch(() => {});
-  }, []);
-
-  async function handleFoto(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const dataUrl = await leerYRedimensionarImagen(file);
-      setFoto(dataUrl);
-    } catch {
-      setError('No se pudo procesar la imagen.');
-    }
+  function cantidadDe(insumoId) {
+    return insumosSeleccionados.find((i) => i.insumoId === insumoId)?.cantidad || 0;
   }
 
-  function agregarLineaReceta() {
-    if (insumosDisponibles.length === 0) return;
-    setReceta((prev) => [...prev, { insumoId: insumosDisponibles[0].id, cantidad: 1 }]);
+  function cambiarCantidad(insumoId, delta) {
+    setInsumosSeleccionados((prev) => {
+      const actual = cantidadDe(insumoId);
+      const nueva = Math.max(0, actual + delta);
+      const sinEste = prev.filter((i) => i.insumoId !== insumoId);
+      return nueva > 0 ? [...sinEste, { insumoId, cantidad: nueva }] : sinEste;
+    });
   }
 
-  function actualizarLinea(index, cambios) {
-    setReceta((prev) => prev.map((linea, i) => (i === index ? { ...linea, ...cambios } : linea)));
-  }
+  const costoEstimado = insumosSeleccionados.reduce((acc, sel) => {
+    const insumo = insumosDisponibles.find((i) => i.id === sel.insumoId);
+    return acc + (insumo ? insumo.costoUnitario * sel.cantidad : 0);
+  }, 0);
 
-  function quitarLinea(index) {
-    setReceta((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  async function handleGuardar(e) {
+  function guardar(e) {
     e.preventDefault();
-    if (!nombre.trim()) {
-      setError('Ingresá un nombre.');
-      return;
-    }
-    if (toNumber(precio) <= 0) {
-      setError('Ingresá un precio válido.');
-      return;
-    }
-    setGuardando(true);
-    setError('');
-
-    const recetaValida = receta
-      .filter((l) => l.insumoId && toNumber(l.cantidad) > 0)
-      .map((l) => ({ insumoId: l.insumoId, cantidad: toNumber(l.cantidad) }));
-
-    try {
-      const datos = { nombre, precio: toNumber(precio), categoria, foto, receta: recetaValida };
-      if (esEdicion) {
-        await actualizarPlato(plato.id, datos);
-      } else {
-        await crearPlato(datos);
-      }
-      onGuardado();
-    } catch (err) {
-      setError(err.message || 'No se pudo guardar el plato.');
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  async function handleEliminar() {
-    if (!window.confirm(`¿Eliminar "${plato.nombre}"?`)) return;
-    await eliminarPlato(plato.id);
-    onEliminado();
+    const precioNum = parseFloat(precio) || 0;
+    if (!nombre.trim() || precioNum <= 0) return;
+    const nuevo = savePlato({
+      id: platoExistente?.id,
+      nombre: nombre.trim(),
+      precio: precioNum,
+      insumos: insumosSeleccionados,
+    });
+    onGuardado?.(nuevo);
+    onClose?.();
   }
 
   return (
-    <Modal titulo={esEdicion ? 'Editar plato' : 'Nuevo plato'} onClose={onClose}>
-      <form className="form" onSubmit={handleGuardar}>
-        <div className="foto-selector">
-          {foto ? (
-            <div className="foto-preview">
-              <img src={foto} alt="" />
-              <button type="button" className="icon-button foto-preview__quitar" onClick={() => setFoto(null)}>
-                <IconCerrar width={16} height={16} />
-              </button>
-            </div>
-          ) : (
-            <label className="foto-placeholder">
-              <span>📷 Agregar foto</span>
-              <input type="file" accept="image/*" onChange={handleFoto} hidden />
-            </label>
-          )}
-        </div>
-
-        <label className="campo">
-          <span>Nombre del plato</span>
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Hamburguesa clásica" autoFocus />
-        </label>
-
-        <div className="campo-fila">
-          <label className="campo">
-            <span>Precio</span>
-            <input type="number" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="$ 0" />
-          </label>
-          <label className="campo">
-            <span>Categoría</span>
-            <input
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              placeholder="Ej: Hamburguesas"
-              list="lista-categorias"
-            />
-            <datalist id="lista-categorias">
-              {categorias.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </label>
-        </div>
-
-        <div className="seccion-receta">
-          <h3>Receta (opcional)</h3>
-          <p className="ayuda-texto">Insumos que se descuentan del stock al vender este plato.</p>
-
-          {insumosDisponibles.length === 0 ? (
-            <p className="ayuda-texto">Cargá insumos primero para poder armar la receta.</p>
-          ) : (
-            <>
-              {receta.map((linea, index) => (
-                <div className="linea-receta" key={index}>
-                  <select
-                    value={linea.insumoId}
-                    onChange={(e) => actualizarLinea(index, { insumoId: e.target.value })}
-                  >
-                    {insumosDisponibles.map((i) => (
-                      <option key={i.id} value={i.id}>{i.nombre}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={linea.cantidad}
-                    onChange={(e) => actualizarLinea(index, { cantidad: e.target.value })}
-                  />
-                  <span className="linea-receta__unidad">
-                    {insumosDisponibles.find((i) => i.id === linea.insumoId)?.unidad || ''}
-                  </span>
-                  <button type="button" className="icon-button" onClick={() => quitarLinea(index)}>
-                    <IconCerrar width={16} height={16} />
-                  </button>
-                </div>
-              ))}
-              <button type="button" className="btn btn--secundario btn--chico" onClick={agregarLineaReceta}>
-                + Agregar insumo
-              </button>
-            </>
-          )}
-        </div>
-
-        {error && <p className="mensaje-error">{error}</p>}
-
-        <button type="submit" className="btn btn--primario" disabled={guardando}>
-          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear plato'}
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 overflow-y-auto">
+      <form onSubmit={guardar} className="bg-cream rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 relative my-6">
+        <button type="button" onClick={onClose} className="absolute top-4 right-4 text-gray-400">
+          <X size={22} />
         </button>
 
-        {esEdicion && (
-          <button type="button" className="btn btn--texto-peligro" onClick={handleEliminar}>
-            Eliminar plato
+        <h2 className="text-xl font-bold text-gray-800 mb-5">
+          {platoExistente ? 'Editar plato' : 'Nuevo plato'}
+        </h2>
+
+        <label className="block text-sm font-medium text-gray-600 mb-1">Nombre</label>
+        <input
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Ej: Cheeseburger clásica"
+          className="w-full mb-4 px-4 py-3 rounded-3xl border border-gray-200 bg-white focus:outline-none focus:border-mint"
+        />
+
+        <label className="block text-sm font-medium text-gray-600 mb-1">Precio de venta</label>
+        <input
+          type="number"
+          inputMode="decimal"
+          value={precio}
+          onChange={(e) => setPrecio(e.target.value)}
+          placeholder="$"
+          className="w-full mb-5 px-4 py-3 rounded-3xl border border-gray-200 bg-white focus:outline-none focus:border-mint"
+        />
+
+        {!mostrarInsumos ? (
+          <button
+            type="button"
+            onClick={() => setMostrarInsumos(true)}
+            className="w-full flex items-start gap-2 bg-cheddar/20 border border-cheddar/40 rounded-3xl p-3 text-left mb-2"
+          >
+            <Info size={18} className="text-cheddar shrink-0 mt-0.5" />
+            <span className="text-sm text-gray-700">
+              <strong>Opcional:</strong> podés asociar insumos para calcular el costo del plato,
+              pero no es necesario para guardarlo. Recomendado si querés controlar tu margen.
+            </span>
           </button>
+        ) : (
+          <div className="mb-2">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-600">Insumos (opcional)</p>
+              {insumosDisponibles.length === 0 && (
+                <span className="text-xs text-gray-400">No cargaste insumos todavía</span>
+              )}
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto mb-2">
+              {insumosDisponibles.map((insumo) => {
+                const cantidad = cantidadDe(insumo.id);
+                return (
+                  <div key={insumo.id} className="flex items-center justify-between bg-white rounded-3xl px-4 py-2">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{insumo.nombre}</p>
+                      <p className="text-xs text-gray-400">
+                        {formatoMoneda(insumo.costoUnitario)} / {insumo.unidad}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => cambiarCantidad(insumo.id, -1)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                        <Minus size={14} />
+                      </button>
+                      <span className="w-6 text-center text-sm font-medium">{cantidad}</span>
+                      <button type="button" onClick={() => cambiarCantidad(insumo.id, 1)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {insumosSeleccionados.length > 0 && (
+              <p className="text-sm text-gray-600 mb-2">
+                Costo estimado del plato: <strong>{formatoMoneda(costoEstimado)}</strong>
+              </p>
+            )}
+          </div>
         )}
+
+        <button
+          type="submit"
+          className="w-full bg-mint text-white font-bold py-3 rounded-3xl mt-3 active:scale-95 transition-transform"
+        >
+          Guardar plato
+        </button>
       </form>
-    </Modal>
+    </div>
   );
 }

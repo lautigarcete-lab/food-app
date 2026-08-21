@@ -1,189 +1,77 @@
-import { useCallback, useEffect, useState } from 'react';
-import Header from '../components/Header.jsx';
-import EmptyState from '../components/EmptyState.jsx';
-import Modal from '../components/Modal.jsx';
-import {
-  CATEGORIAS_GASTO,
-  etiquetaCategoria,
-  listarGastos,
-  crearGasto,
-  eliminarGasto,
-} from '../db/repositories/gastosRepo.js';
-import { formatMoney, toNumber } from '../utils/money.js';
-import { rangoDelPeriodo, formatearFechaCorta, fechaDesdeInput, inputDesdeFecha } from '../utils/fechas.js';
-import { IconMas2, IconCerrar } from '../components/icons.jsx';
+import React, { useState } from 'react';
+import { Plus, ClipboardList } from 'lucide-react';
+import { getGastos, registrarGasto, esMismoDia, formatoMoneda } from '../lib/db';
+import CierreJornadaModal from '../components/CierreJornadaModal';
 
-const PERIODOS = [
-  { id: 'dia', label: 'Hoy' },
-  { id: 'semana', label: 'Semana' },
-  { id: 'mes', label: 'Mes' },
-  { id: 'todo', label: 'Todo' },
-];
-
-export default function GastosPage({ onVolver }) {
-  const [periodo, setPeriodo] = useState('semana');
-  const [gastos, setGastos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [creando, setCreando] = useState(false);
-
-  const [monto, setMonto] = useState('');
-  const [categoria, setCategoria] = useState('insumos');
-  const [fecha, setFecha] = useState(inputDesdeFecha());
+export default function GastosPage() {
+  const [gastos, setGastos] = useState(getGastos());
   const [descripcion, setDescripcion] = useState('');
-  const [error, setError] = useState('');
+  const [monto, setMonto] = useState('');
+  const [mostrarCierre, setMostrarCierre] = useState(false);
 
-  const refrescar = useCallback(async () => {
-    setCargando(true);
-    const lista = await listarGastos(rangoDelPeriodo(periodo));
-    setGastos(lista);
-    setCargando(false);
-  }, [periodo]);
+  const gastosHoy = gastos
+    .filter((g) => esMismoDia(g.fecha))
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-  useEffect(() => {
-    refrescar();
-  }, [refrescar]);
-
-  const total = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
-
-  async function handleCrear() {
-    if (toNumber(monto) <= 0) {
-      setError('Ingresá un monto mayor a cero.');
-      return;
-    }
-    await crearGasto({
-      monto: toNumber(monto),
-      categoria,
-      fecha: fechaDesdeInput(fecha),
-      descripcion,
-    });
-    setMonto('');
+  function agregarGasto(e) {
+    e.preventDefault();
+    const montoNum = parseFloat(monto) || 0;
+    if (!descripcion.trim() || montoNum <= 0) return;
+    registrarGasto({ descripcion: descripcion.trim(), monto: montoNum });
+    setGastos(getGastos());
     setDescripcion('');
-    setFecha(inputDesdeFecha());
-    setCreando(false);
-    setError('');
-    refrescar();
-  }
-
-  async function handleEliminar(gasto) {
-    if (!window.confirm(`¿Borrar el gasto de ${formatMoney(gasto.monto)}?`)) return;
-    await eliminarGasto(gasto.id);
-    refrescar();
+    setMonto('');
   }
 
   return (
-    <div className="page">
-      <Header titulo="Gastos" onVolver={onVolver} />
-      <div className="page__content">
-        <div className="chips">
-          {PERIODOS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={periodo === p.id ? 'is-active' : ''}
-              onClick={() => setPeriodo(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="banner-total">
-          <span>Total gastado</span>
-          <strong>{formatMoney(total)}</strong>
-        </div>
-
-        {cargando ? (
-          <p className="ayuda-texto">Cargando…</p>
-        ) : gastos.length === 0 ? (
-          <EmptyState emoji="💸" titulo="No hay gastos en este período" />
-        ) : (
-          <ul className="lista-gastos">
-            {gastos.map((gasto) => {
-              const cat = etiquetaCategoria(gasto.categoria);
-              return (
-                <li key={gasto.id} className="gasto-row">
-                  <span className="gasto-row__emoji">{cat.emoji}</span>
-                  <div className="gasto-row__info">
-                    <strong>{gasto.descripcion || cat.label}</strong>
-                    <small>{cat.label} · {formatearFechaCorta(gasto.fecha)}</small>
-                  </div>
-                  <strong className="gasto-row__monto">{formatMoney(gasto.monto)}</strong>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    onClick={() => handleEliminar(gasto)}
-                    aria-label="Borrar gasto"
-                  >
-                    <IconCerrar width={16} height={16} />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+    <div className="p-4 pb-24">
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold text-gray-800">Gastos</h1>
+        <button
+          onClick={() => setMostrarCierre(true)}
+          className="flex items-center gap-1.5 bg-mint/10 text-mint font-medium text-sm px-3 py-2 rounded-3xl"
+        >
+          <ClipboardList size={16} /> Cierre del día
+        </button>
       </div>
 
-      <button type="button" className="fab" onClick={() => setCreando(true)} aria-label="Nuevo gasto">
-        <IconMas2 width={26} height={26} />
-      </button>
+      <form onSubmit={agregarGasto} className="bg-white rounded-3xl p-4 mb-4 space-y-3">
+        <input
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          placeholder="Descripción del gasto"
+          className="w-full px-4 py-3 rounded-3xl border border-gray-200 focus:outline-none focus:border-mint"
+        />
+        <div className="flex gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
+            placeholder="Monto"
+            className="flex-1 px-4 py-3 rounded-3xl border border-gray-200 focus:outline-none focus:border-mint"
+          />
+          <button type="submit" className="bg-mint text-white rounded-3xl w-12 flex items-center justify-center active:scale-95 transition-transform">
+            <Plus size={20} />
+          </button>
+        </div>
+      </form>
 
-      {creando && (
-        <Modal
-          titulo="Nuevo gasto"
-          onClose={() => setCreando(false)}
-          footer={
-            <button type="button" className="btn btn--primario" onClick={handleCrear}>
-              Guardar gasto
-            </button>
-          }
-        >
-          <div className="form">
-            <label className="campo">
-              <span>Monto</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-                placeholder="$ 0"
-                autoFocus
-              />
-            </label>
-
-            <div>
-              <span className="etiqueta-grupo">Categoría</span>
-              <div className="opciones-pago">
-                {CATEGORIAS_GASTO.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`opcion-pago${categoria === c.id ? ' is-active' : ''}`}
-                    onClick={() => setCategoria(c.id)}
-                  >
-                    {c.emoji} {c.label}
-                  </button>
-                ))}
-              </div>
+      <p className="text-sm font-medium text-gray-500 mb-2">Gastos de hoy</p>
+      {gastosHoy.length === 0 ? (
+        <p className="text-gray-400 text-center mt-6">Todavía no registraste gastos hoy.</p>
+      ) : (
+        <div className="space-y-2">
+          {gastosHoy.map((g) => (
+            <div key={g.id} className="bg-white rounded-3xl p-4 flex items-center justify-between">
+              <span className="text-gray-700">{g.descripcion}</span>
+              <span className="font-semibold text-coral">-{formatoMoneda(g.monto)}</span>
             </div>
-
-            <label className="campo">
-              <span>Fecha</span>
-              <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-            </label>
-
-            <label className="campo">
-              <span>Descripción (opcional)</span>
-              <input
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Ej: carne para el finde"
-              />
-            </label>
-
-            {error && <p className="mensaje-error">{error}</p>}
-          </div>
-        </Modal>
+          ))}
+        </div>
       )}
+
+      {mostrarCierre && <CierreJornadaModal onClose={() => setMostrarCierre(false)} />}
     </div>
   );
 }
