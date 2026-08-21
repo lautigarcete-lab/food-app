@@ -1,0 +1,53 @@
+name: Compilar APK Android
+
+# Se dispara al pushear a main, o manualmente desde la pestaña "Actions" de GitHub.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar Java (necesario para Gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias del proyecto
+        run: npm ci
+
+      - name: Compilar la web (Vite)
+        run: npm run build
+
+      - name: Agregar la plataforma Android (si no existe)
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Compilar el APK (debug, sin firma)
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Subir el APK como artifact descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: FUDI-app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
