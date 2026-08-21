@@ -1,4 +1,4 @@
-import { getAll, getAllByIndex, getById, put } from '../db';
+import { getAll, getAllByIndex, getById, put } from '../firestoreDb.js';
 import { generarId } from '../../utils/id';
 import { listarPlatos } from './platosRepo';
 import { listarCombos } from './combosRepo';

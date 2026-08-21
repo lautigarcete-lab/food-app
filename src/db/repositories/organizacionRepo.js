@@ -1,4 +1,4 @@
-import { getAll, getById, put, remove } from '../db';
+import { getAll, getById, put, remove } from '../firestoreDb.js';
 import { generarId } from '../../utils/id';
 import { inicioDelDia, finDelDia } from '../../utils/fechas';
 

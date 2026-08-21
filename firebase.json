@@ -1,0 +1,13 @@
+{
+  "firestore": {
+    "database": "fudipos",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "authorizedDomains": ["localhost"],
+    "providers": {
+      "emailPassword": true
+    }
+  }
+}

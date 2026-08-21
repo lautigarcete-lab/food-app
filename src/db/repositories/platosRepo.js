@@ -1,4 +1,4 @@
-import { getAll, getById, put } from '../db';
+import { getAll, getById, put } from '../firestoreDb.js';
 import { generarId } from '../../utils/id';
 
 const STORE = 'platos';

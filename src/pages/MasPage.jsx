@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Header from '../components/Header.jsx';
 import CierreJornadaModal from './CierreJornadaModal.jsx';
-import { IconInsumos, IconGastos, IconTareas, IconRespaldo, IconCierre } from '../components/icons.jsx';
+import { IconInsumos, IconGastos, IconTareas, IconRespaldo, IconCierre, IconCuenta } from '../components/icons.jsx';
 
 const OPCIONES = [
   { id: 'insumos', label: 'Insumos', descripcion: 'Stock, mínimos y mermas', Icon: IconInsumos },
@@ -9,6 +9,7 @@ const OPCIONES = [
   { id: 'cierre', label: 'Cierre de jornada', descripcion: 'Balance del día por medio de pago', Icon: IconCierre },
   { id: 'tareas', label: 'Organización', descripcion: 'Tareas y calendario de publicaciones', Icon: IconTareas },
   { id: 'respaldo', label: 'Respaldo', descripcion: 'Guardar y restaurar todos tus datos', Icon: IconRespaldo },
+  { id: 'cuenta', label: 'Cuenta', descripcion: 'Negocio, equipo y sesión', Icon: IconCuenta },
 ];
 
 export default function MasPage({ onIr }) {

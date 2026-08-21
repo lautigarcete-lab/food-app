@@ -1,0 +1,500 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model — Fudi POS (multi-negocio)
+// ===============================================================
+//
+// Fechas: por compatibilidad con el resto de la app (utils/fechas.js y los
+// repositorios ya migrados desde IndexedDB, que siempre usaron
+// `new Date().toISOString()`), todas las fechas se guardan como STRING ISO
+// 8601, no como el tipo `timestamp` nativo de Firestore. Un string ISO 8601
+// ordena igual que la fecha real, así que no se pierde nada al filtrar u
+// ordenar. Esta es una desviación deliberada de la recomendación general de
+// preferir `timestamp`, documentada acá para que quede claro que es a
+// propósito y no un olvido.
+//
+// Collection: usuarios/{uid}
+//   - nombre: string (1-60) - nombre para mostrar
+//   - email: string (email válido) - debe coincidir con el token de auth
+//   - creadoEn: string ISO 8601 (inmutable)
+//   Documento privado: solo el dueño de la cuenta lo puede leer/escribir.
+//
+// Collection: negocios/{negocioId}
+//   - nombre: string (1-60)
+//   - creadoPor: string (uid, inmutable)
+//   - creadoEn: string ISO 8601 (inmutable)
+//   - archivado: bool
+//   Cualquier miembro puede leer. Solo el dueño puede actualizar
+//   (nombre/archivado). No hay borrado físico, solo archivado.
+//
+// Collection: negocios/{negocioId}/miembros/{uid}  (uid = id del documento)
+//   - uid: string (debe coincidir con el id del documento, inmutable)
+//   - rol: 'dueño' | 'acceso' (inmutable salvo que lo cambie un dueño)
+//   - nombre: string (1-60, opcional)
+//   - agregadoPor: string (uid, inmutable)
+//   - agregadoEn: string ISO 8601 (inmutable)
+//   Cualquier miembro puede leer la lista de miembros de su negocio. Solo un
+//   dueño puede agregar/editar/quitar miembros (y no puede quitarse a sí
+//   mismo, para no dejar el negocio sin dueño).
+//
+// Collection: negocios/{negocioId}/insumos/{id}
+//   - nombre: string (1-60)
+//   - unidad: 'gr' | 'ml' | 'u'
+//   - stock: number (>=0)
+//   - stockMinimo: number (>=0)
+//   - precioEnvase: number (>=0)
+//   - contenidoEnvase: number (>=0)
+//   - costoUnitario: number (>=0) - precioEnvase / contenidoEnvase
+//   - activo: bool
+//   - creadoEn / actualizadoEn: string ISO 8601
+//
+// Collection: negocios/{negocioId}/movimientosInsumo/{id}
+//   - insumoId: string
+//   - tipo: 'compra' | 'merma' | 'ajuste' | 'venta'
+//   - delta: number
+//   - motivo: string (0-200)
+//   - fecha: string ISO 8601
+//
+// Collection: negocios/{negocioId}/platos/{id}
+//   - nombre: string (1-80)
+//   - precio: number (>=0)
+//   - categoria: string (0-40)
+//   - foto: string|null (dataURL JPEG redimensionada, hasta ~900KB) u
+//     opcional
+//   - receta: list de mapas {insumoId, cantidad} (opcional, 100% opcional
+//     para poder vender un plato sin costear insumos)
+//   - activo: bool
+//   - creadoEn / actualizadoEn: string ISO 8601
+//
+// Collection: negocios/{negocioId}/combos/{id}
+//   - nombre: string (1-80)
+//   - precioEspecial: number (>=0)
+//   - items: list de mapas {platoId, cantidad}
+//   - activo: bool
+//   - creadoEn / actualizadoEn: string ISO 8601
+//
+// Collection: negocios/{negocioId}/ventas/{id}
+//   - fecha: string ISO 8601 (inmutable)
+//   - items: list de mapas {tipo, refId, nombre, precioUnitario, cantidad,
+//     subtotal}
+//   - total: number (>=0)
+//   - tipoPago: 'inmediato' | 'fiado'
+//   - medioPago: string|null
+//   - clienteId: string|null
+//   - pagada: bool (mutable: se marca true cuando se salda un fiado)
+//   - nota: string (0-200)
+//
+// Collection: negocios/{negocioId}/clientes/{id}
+//   - nombre: string (1-60)
+//   - telefono: string (0-30)
+//   - activo: bool
+//   - creadoEn / actualizadoEn: string ISO 8601
+//
+// Collection: negocios/{negocioId}/pagosCliente/{id}
+//   - clienteId: string
+//   - monto: number (>=0)
+//   - nota: string (0-200)
+//   - fecha: string ISO 8601 (inmutable)
+//
+// Collection: negocios/{negocioId}/gastos/{id}
+//   - monto: number (>=0)
+//   - categoria: 'insumos' | 'servicios' | 'otros'
+//   - fecha: string ISO 8601
+//   - descripcion: string (0-200)
+//   - creadoEn: string ISO 8601 (inmutable)
+//
+// Collection: negocios/{negocioId}/tareas/{id}
+//   - texto: string (1-200)
+//   - fecha: string ISO 8601
+//   - hecha: bool
+//   - creadoEn: string ISO 8601 (inmutable)
+//
+// Collection: negocios/{negocioId}/publicaciones/{id}
+//   - texto: string (1-200)
+//   - fecha: string ISO 8601
+//   - plataforma: 'instagram' | 'whatsapp' | 'facebook' | 'tiktok' | 'otra'
+//   - creadoEn: string ISO 8601 (inmutable)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------
+    // Helper functions
+    // -------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(negocioId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/negocios/$(negocioId)/miembros/$(request.auth.uid));
+    }
+
+    function memberRole(negocioId) {
+      return get(/databases/$(database)/documents/negocios/$(negocioId)/miembros/$(request.auth.uid)).data.rol;
+    }
+
+    function isOwnerOfNegocio(negocioId) {
+      return isMember(negocioId) && memberRole(negocioId) == 'dueño';
+    }
+
+    function isValidDateString(v) {
+      return v is string && v.matches('^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$');
+    }
+
+    function isValidEmail(v) {
+      return v is string && v.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function isValidString(v, minLen, maxLen) {
+      return v is string && v.size() >= minLen && v.size() <= maxLen;
+    }
+
+    function isValidOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) || isValidString(data[field], minLen, maxLen);
+    }
+
+    function isNonNegativeNumber(v) {
+      return v is number && v >= 0;
+    }
+
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function unchanged(field) {
+      return !(field in request.resource.data) == !(field in resource.data) &&
+        (!(field in resource.data) || request.resource.data[field] == resource.data[field]);
+    }
+
+    // -------------------------------------------------------------
+    // usuarios/{uid} — perfil privado
+    // -------------------------------------------------------------
+
+    match /usuarios/{uid} {
+      function isValidUsuario(data) {
+        return hasOnlyAllowedFields(data, ['nombre', 'email', 'creadoEn']) &&
+          hasRequiredFields(data, ['nombre', 'email', 'creadoEn']) &&
+          isValidString(data.nombre, 1, 60) &&
+          isValidEmail(data.email) &&
+          data.email == request.auth.token.email &&
+          isValidDateString(data.creadoEn);
+      }
+
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && isValidUsuario(request.resource.data);
+      allow update: if isSignedIn() && request.auth.uid == uid &&
+        isValidUsuario(request.resource.data) &&
+        unchanged('creadoEn');
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------
+    // negocios/{negocioId}
+    // -------------------------------------------------------------
+
+    match /negocios/{negocioId} {
+      function isValidNegocioCreate(data) {
+        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
+          hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
+          isValidString(data.nombre, 1, 60) &&
+          data.creadoPor == request.auth.uid &&
+          isValidDateString(data.creadoEn) &&
+          data.archivado == false;
+      }
+
+      function isValidNegocioUpdate(data) {
+        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
+          hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
+          isValidString(data.nombre, 1, 60) &&
+          data.archivado is bool;
+      }
+
+      allow read: if isMember(negocioId);
+      allow create: if isSignedIn() && isValidNegocioCreate(request.resource.data);
+      allow update: if isOwnerOfNegocio(negocioId) &&
+        isValidNegocioUpdate(request.resource.data) &&
+        unchanged('creadoPor') && unchanged('creadoEn');
+      allow delete: if false;
+
+      // -----------------------------------------------------------
+      // negocios/{negocioId}/miembros/{uid}
+      // -----------------------------------------------------------
+
+      match /miembros/{memberUid} {
+        function isValidMiembro(data) {
+          return hasOnlyAllowedFields(data, ['uid', 'rol', 'nombre', 'agregadoPor', 'agregadoEn']) &&
+            hasRequiredFields(data, ['uid', 'rol', 'agregadoPor', 'agregadoEn']) &&
+            data.uid == memberUid &&
+            data.rol in ['dueño', 'acceso'] &&
+            isValidOptionalString(data, 'nombre', 1, 60) &&
+            data.agregadoPor == request.auth.uid &&
+            isValidDateString(data.agregadoEn);
+        }
+
+        // Se puede crear el primer miembro (dueño) al mismo tiempo que se
+        // crea el negocio (el propio creador se auto-asigna como dueño), o
+        // un dueño existente puede agregar un colaborador con acceso.
+        function esAltaDeCreador() {
+          return memberUid == request.auth.uid &&
+            request.resource.data.rol == 'dueño' &&
+            get(/databases/$(database)/documents/negocios/$(negocioId)).data.creadoPor == request.auth.uid;
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isSignedIn() && isValidMiembro(request.resource.data) &&
+          (esAltaDeCreador() || (isOwnerOfNegocio(negocioId) && request.resource.data.rol == 'acceso'));
+        allow update: if isOwnerOfNegocio(negocioId) &&
+          isValidMiembro(request.resource.data) &&
+          unchanged('uid') && unchanged('agregadoPor') && unchanged('agregadoEn');
+        allow delete: if isOwnerOfNegocio(negocioId) && memberUid != request.auth.uid;
+      }
+
+      // -----------------------------------------------------------
+      // Datos del negocio: cualquier miembro (dueño o con acceso) puede
+      // operar el día a día (vender, cargar insumos, anotar gastos, etc.)
+      // -----------------------------------------------------------
+
+      match /insumos/{id} {
+        function isValidInsumo(data) {
+          return hasOnlyAllowedFields(data, [
+              'nombre', 'unidad', 'stock', 'stockMinimo', 'precioEnvase',
+              'contenidoEnvase', 'costoUnitario', 'activo', 'creadoEn', 'actualizadoEn'
+            ]) &&
+            hasRequiredFields(data, ['nombre', 'unidad', 'stock', 'activo', 'creadoEn', 'actualizadoEn']) &&
+            isValidString(data.nombre, 1, 60) &&
+            data.unidad in ['gr', 'ml', 'u'] &&
+            isNonNegativeNumber(data.stock) &&
+            (!('stockMinimo' in data) || isNonNegativeNumber(data.stockMinimo)) &&
+            (!('precioEnvase' in data) || isNonNegativeNumber(data.precioEnvase)) &&
+            (!('contenidoEnvase' in data) || isNonNegativeNumber(data.contenidoEnvase)) &&
+            (!('costoUnitario' in data) || isNonNegativeNumber(data.costoUnitario)) &&
+            data.activo is bool &&
+            isValidDateString(data.creadoEn) && isValidDateString(data.actualizadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidInsumo(request.resource.data);
+        allow update: if isMember(negocioId) && isValidInsumo(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+
+      match /movimientosInsumo/{id} {
+        function isValidMovimiento(data) {
+          return hasOnlyAllowedFields(data, ['insumoId', 'tipo', 'delta', 'motivo', 'fecha']) &&
+            hasRequiredFields(data, ['insumoId', 'tipo', 'delta', 'fecha']) &&
+            isValidString(data.insumoId, 1, 200) &&
+            data.tipo in ['compra', 'merma', 'ajuste', 'venta'] &&
+            data.delta is number &&
+            isValidOptionalString(data, 'motivo', 0, 200) &&
+            isValidDateString(data.fecha);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidMovimiento(request.resource.data);
+        allow update: if false;
+        allow delete: if isMember(negocioId);
+      }
+
+      match /platos/{id} {
+        function isValidLineaReceta(l) {
+          return l is map && l.keys().hasOnly(['insumoId', 'cantidad']) &&
+            l.insumoId is string && l.insumoId.size() < 200 &&
+            l.cantidad is number && l.cantidad >= 0;
+        }
+
+        // Nota: el lenguaje de reglas de Firestore no soporta iterar listas
+        // (no existe un "all"/"map" real), así que el contenido de cada
+        // elemento no se puede validar acá en profundidad — solo el tamaño y
+        // el tipo general de la lista. La forma de cada línea de receta
+        // (isValidLineaReceta, ya definida arriba) queda como referencia y
+        // como lo que el código cliente respeta al armar el array; un
+        // miembro que use la API directamente en vez de la app podría
+        // guardar líneas con forma inválida dentro de su propio negocio,
+        // pero no puede leer ni afectar datos de otro negocio.
+        function isValidReceta(v) {
+          return v is list && v.size() <= 40;
+        }
+
+        function isValidPlato(data) {
+          return hasOnlyAllowedFields(data, [
+              'nombre', 'precio', 'categoria', 'foto', 'receta', 'activo', 'creadoEn', 'actualizadoEn'
+            ]) &&
+            hasRequiredFields(data, ['nombre', 'precio', 'activo', 'creadoEn', 'actualizadoEn']) &&
+            isValidString(data.nombre, 1, 80) &&
+            isNonNegativeNumber(data.precio) &&
+            isValidOptionalString(data, 'categoria', 0, 40) &&
+            (!('foto' in data) || data.foto == null || isValidString(data.foto, 0, 900000)) &&
+            (!('receta' in data) || isValidReceta(data.receta)) &&
+            data.activo is bool &&
+            isValidDateString(data.creadoEn) && isValidDateString(data.actualizadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidPlato(request.resource.data);
+        allow update: if isMember(negocioId) && isValidPlato(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+
+      match /combos/{id} {
+        function isValidItemCombo(it) {
+          return it is map && it.keys().hasOnly(['platoId', 'cantidad']) &&
+            it.platoId is string && it.platoId.size() < 200 &&
+            it.cantidad is number && it.cantidad >= 0;
+        }
+
+        // Ídem nota de isValidReceta: solo se valida tamaño, no el contenido
+        // de cada elemento (limitación del lenguaje de reglas de Firestore).
+        function isValidItems(v) {
+          return v is list && v.size() >= 1 && v.size() <= 40;
+        }
+
+        function isValidCombo(data) {
+          return hasOnlyAllowedFields(data, ['nombre', 'precioEspecial', 'items', 'activo', 'creadoEn', 'actualizadoEn']) &&
+            hasRequiredFields(data, ['nombre', 'precioEspecial', 'items', 'activo', 'creadoEn', 'actualizadoEn']) &&
+            isValidString(data.nombre, 1, 80) &&
+            isNonNegativeNumber(data.precioEspecial) &&
+            isValidItems(data.items) &&
+            data.activo is bool &&
+            isValidDateString(data.creadoEn) && isValidDateString(data.actualizadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidCombo(request.resource.data);
+        allow update: if isMember(negocioId) && isValidCombo(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+
+      match /ventas/{id} {
+        function isValidItemVenta(it) {
+          return it is map &&
+            it.keys().hasOnly(['tipo', 'refId', 'nombre', 'precioUnitario', 'cantidad', 'subtotal']) &&
+            it.tipo in ['plato', 'combo'] &&
+            it.refId is string && it.refId.size() < 200 &&
+            it.nombre is string && it.nombre.size() < 200 &&
+            it.precioUnitario is number && it.precioUnitario >= 0 &&
+            it.cantidad is number && it.cantidad >= 0 &&
+            it.subtotal is number && it.subtotal >= 0;
+        }
+
+        // Ídem nota de isValidReceta: solo se valida tamaño, no el contenido
+        // de cada elemento (limitación del lenguaje de reglas de Firestore).
+        function isValidItemsVenta(v) {
+          return v is list && v.size() >= 1 && v.size() <= 100;
+        }
+
+        function isValidVenta(data) {
+          return hasOnlyAllowedFields(data, [
+              'fecha', 'items', 'total', 'tipoPago', 'medioPago', 'clienteId', 'pagada', 'nota'
+            ]) &&
+            hasRequiredFields(data, ['fecha', 'items', 'total', 'tipoPago', 'pagada']) &&
+            isValidDateString(data.fecha) &&
+            isValidItemsVenta(data.items) &&
+            isNonNegativeNumber(data.total) &&
+            data.tipoPago in ['inmediato', 'fiado'] &&
+            (!('medioPago' in data) || data.medioPago == null || data.medioPago in ['efectivo', 'mercadopago', 'tarjeta']) &&
+            (!('clienteId' in data) || data.clienteId == null || isValidString(data.clienteId, 1, 200)) &&
+            data.pagada is bool &&
+            isValidOptionalString(data, 'nota', 0, 200);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidVenta(request.resource.data);
+        // Solo se puede modificar para saldar un fiado (pagada), todo lo
+        // demás de la venta queda fijo una vez registrada.
+        allow update: if isMember(negocioId) && isValidVenta(request.resource.data) &&
+          unchanged('fecha') && unchanged('items') && unchanged('total') &&
+          unchanged('tipoPago') && unchanged('medioPago') && unchanged('clienteId') && unchanged('nota');
+        allow delete: if isOwnerOfNegocio(negocioId);
+      }
+
+      match /clientes/{id} {
+        function isValidCliente(data) {
+          return hasOnlyAllowedFields(data, ['nombre', 'telefono', 'activo', 'creadoEn', 'actualizadoEn']) &&
+            hasRequiredFields(data, ['nombre', 'activo', 'creadoEn', 'actualizadoEn']) &&
+            isValidString(data.nombre, 1, 60) &&
+            isValidOptionalString(data, 'telefono', 0, 30) &&
+            data.activo is bool &&
+            isValidDateString(data.creadoEn) && isValidDateString(data.actualizadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidCliente(request.resource.data);
+        allow update: if isMember(negocioId) && isValidCliente(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+
+      match /pagosCliente/{id} {
+        function isValidPago(data) {
+          return hasOnlyAllowedFields(data, ['clienteId', 'monto', 'nota', 'fecha']) &&
+            hasRequiredFields(data, ['clienteId', 'monto', 'fecha']) &&
+            isValidString(data.clienteId, 1, 200) &&
+            isNonNegativeNumber(data.monto) &&
+            isValidOptionalString(data, 'nota', 0, 200) &&
+            isValidDateString(data.fecha);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidPago(request.resource.data);
+        allow update: if false;
+        allow delete: if isOwnerOfNegocio(negocioId);
+      }
+
+      match /gastos/{id} {
+        function isValidGasto(data) {
+          return hasOnlyAllowedFields(data, ['monto', 'categoria', 'fecha', 'descripcion', 'creadoEn']) &&
+            hasRequiredFields(data, ['monto', 'categoria', 'fecha', 'creadoEn']) &&
+            isNonNegativeNumber(data.monto) &&
+            data.categoria in ['insumos', 'servicios', 'otros'] &&
+            isValidDateString(data.fecha) &&
+            isValidOptionalString(data, 'descripcion', 0, 200) &&
+            isValidDateString(data.creadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidGasto(request.resource.data);
+        allow update: if isMember(negocioId) && isValidGasto(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+
+      match /tareas/{id} {
+        function isValidTarea(data) {
+          return hasOnlyAllowedFields(data, ['texto', 'fecha', 'hecha', 'creadoEn']) &&
+            hasRequiredFields(data, ['texto', 'fecha', 'hecha', 'creadoEn']) &&
+            isValidString(data.texto, 1, 200) &&
+            isValidDateString(data.fecha) &&
+            data.hecha is bool &&
+            isValidDateString(data.creadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidTarea(request.resource.data);
+        allow update: if isMember(negocioId) && isValidTarea(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+
+      match /publicaciones/{id} {
+        function isValidPublicacion(data) {
+          return hasOnlyAllowedFields(data, ['texto', 'fecha', 'plataforma', 'creadoEn']) &&
+            hasRequiredFields(data, ['texto', 'fecha', 'plataforma', 'creadoEn']) &&
+            isValidString(data.texto, 1, 200) &&
+            isValidDateString(data.fecha) &&
+            data.plataforma in ['instagram', 'whatsapp', 'facebook', 'tiktok', 'otra'] &&
+            isValidDateString(data.creadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidPublicacion(request.resource.data);
+        allow update: if isMember(negocioId) && isValidPublicacion(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+    }
+  }
+}

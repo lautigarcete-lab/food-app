@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BottomNav from './components/BottomNav.jsx';
+import BurgerMascot from './components/BurgerMascot.jsx';
 import InicioPage from './pages/InicioPage.jsx';
 import VenderPage from './pages/VenderPage.jsx';
 import CatalogoPage from './pages/CatalogoPage.jsx';
@@ -9,11 +10,16 @@ import InsumosPage from './pages/InsumosPage.jsx';
 import GastosPage from './pages/GastosPage.jsx';
 import TareasPage from './pages/TareasPage.jsx';
 import RespaldoPage from './pages/RespaldoPage.jsx';
+import CuentaPage from './pages/CuentaPage.jsx';
+import AuthPage from './pages/AuthPage.jsx';
+import SeleccionarNegocioPage from './pages/SeleccionarNegocioPage.jsx';
+import { useAuth } from './auth/AuthContext.jsx';
+import { NegocioProvider, useNegocio } from './negocio/NegocioContext.jsx';
 
 // Navegación plana a propósito (sin router ni menús anidados): un solo
 // estado de "vista actual" que decide qué pantalla mostrar. Las vistas
-// insumos/gastos/tareas cuelgan de "Más" pero se manejan igual acá.
-export default function App() {
+// insumos/gastos/tareas/cuenta cuelgan de "Más" pero se manejan igual acá.
+function AppPrincipal() {
   const [vista, setVista] = useState('inicio');
 
   const volverAMas = () => setVista('mas');
@@ -30,8 +36,38 @@ export default function App() {
         {vista === 'gastos' && <GastosPage onVolver={volverAMas} />}
         {vista === 'tareas' && <TareasPage onVolver={volverAMas} />}
         {vista === 'respaldo' && <RespaldoPage onVolver={volverAMas} />}
+        {vista === 'cuenta' && <CuentaPage onVolver={volverAMas} />}
       </main>
       <BottomNav vistaActual={vista} onCambiarVista={setVista} />
     </div>
+  );
+}
+
+function PantallaCargando() {
+  return (
+    <div className="pantalla-centrada">
+      <BurgerMascot size={80} variant="normal" />
+      <p className="ayuda-texto">Cargando…</p>
+    </div>
+  );
+}
+
+function ConNegocio() {
+  const { negocios, negocioActivo } = useNegocio();
+  if (negocios === undefined) return <PantallaCargando />;
+  if (!negocioActivo) return <SeleccionarNegocioPage />;
+  return <AppPrincipal />;
+}
+
+export default function App() {
+  const { usuario } = useAuth();
+
+  if (usuario === undefined) return <PantallaCargando />;
+  if (usuario === null) return <AuthPage />;
+
+  return (
+    <NegocioProvider uid={usuario.uid}>
+      <ConNegocio />
+    </NegocioProvider>
   );
 }

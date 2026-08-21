@@ -1,4 +1,4 @@
-import { getAll, put, clear, NOMBRES_STORES } from '../db';
+import { getAll, put, clear, NOMBRES_STORES } from '../firestoreDb.js';
 import { inputDesdeFecha } from '../../utils/fechas';
 
 // Marca del archivo, para no dejar que alguien importe un JSON cualquiera

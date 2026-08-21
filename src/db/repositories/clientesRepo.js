@@ -1,4 +1,4 @@
-import { getAll, getAllByIndex, getById, put } from '../db';
+import { getAll, getAllByIndex, getById, put } from '../firestoreDb.js';
 import { generarId } from '../../utils/id';
 
 const STORE = 'clientes';
