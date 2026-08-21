@@ -34,7 +34,7 @@ export async function generarRespaldo() {
 }
 
 export function nombreDeArchivo(fecha = new Date()) {
-  return `respaldo-foodtruck-${inputDesdeFecha(fecha)}.json`;
+  return `respaldo-fudipos-${inputDesdeFecha(fecha)}.json`;
 }
 
 /** Cantidad de registros por tabla, para mostrar un resumen entendible. */

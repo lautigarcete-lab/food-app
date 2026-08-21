@@ -1,124 +1,256 @@
-import React, { useEffect, useState } from 'react';
-import { Banknote, CreditCard, Smartphone, X, Share2 } from 'lucide-react';
-import BurgerMascot from '../components/BurgerMascot';
-import { registrarVenta, formatoMoneda, compartirPorWhatsApp } from '../lib/db';
+import { useEffect, useState } from 'react';
+import Modal from '../components/Modal.jsx';
+import { crearVenta, detectarStockInsuficiente } from '../db/repositories/ventasRepo.js';
+import { listarClientes, crearCliente, obtenerCliente } from '../db/repositories/clientesRepo.js';
+import { listarInsumos } from '../db/repositories/insumosRepo.js';
+import { generarNotaPedido, compartirNota } from '../utils/nota.js';
+import { formatMoney } from '../utils/money.js';
+import { IconAlerta } from '../components/icons.jsx';
+import BurgerMascot from '../components/BurgerMascot.jsx';
 
 const MEDIOS_PAGO = [
-  { id: 'efectivo', label: 'Efectivo', icon: Banknote },
-  { id: 'mercadopago', label: 'Mercado Pago / Transferencia', icon: Smartphone },
-  { id: 'tarjeta', label: 'Tarjeta', icon: CreditCard },
+  { id: 'efectivo', label: 'Efectivo' },
+  { id: 'mercadopago', label: 'Mercado Pago / Transferencia' },
+  { id: 'tarjeta', label: 'Tarjeta' },
 ];
-
-function armarTextoTicket(items, total, medioPago) {
-  const medio = MEDIOS_PAGO.find((m) => m.id === medioPago)?.label || medioPago;
-  const lineas = items.map(
-    (it) => `• ${it.cantidad}x ${it.plato.nombre} — ${formatoMoneda(it.plato.precio * it.cantidad)}`
-  );
-  return [
-    '🍔 *Ticket Fudi POS*',
-    '',
-    ...lineas,
-    '',
-    `Total: *${formatoMoneda(total)}*`,
-    `Medio de pago: ${medio}`,
-    '',
-    `¡Gracias por tu compra!`,
-  ].join('\n');
-}
 
 export default function CerrarVentaModal({
   items,
   total,
-  onClose,
-  onVentaConfirmada,
+  platos,
+  combos,
+  onCancelar,
+  onVentaCerrada,
   medioPagoInicial = null,
   autoConfirmar = false,
 }) {
-  const [medioPago, setMedioPago] = useState(medioPagoInicial);
-  const [confirmada, setConfirmada] = useState(false);
-  // Snapshot de lo cobrado: items/total son props "en vivo" y el padre suele
-  // vaciar el carrito apenas se confirma la venta, así que sin esto la
-  // pantalla de éxito y el ticket de WhatsApp quedarían mostrando $0.
-  const [ventaConfirmada, setVentaConfirmada] = useState(null);
+  const [tipoPago, setTipoPago] = useState('inmediato');
+  const [medioPago, setMedioPago] = useState(medioPagoInicial || 'efectivo');
+  const [clienteId, setClienteId] = useState('');
+  const [nota, setNota] = useState('');
+  const [clientes, setClientes] = useState([]);
+  const [faltantes, setFaltantes] = useState([]);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState('');
 
-  function confirmarCobro(medio) {
-    const medioAUsar = medio || medioPago;
-    if (!medioAUsar) return;
-    registrarVenta({
-      items: items.map((it) => ({ platoId: it.plato.id, nombre: it.plato.nombre, precio: it.plato.precio, cantidad: it.cantidad })),
-      total,
-      medioPago: medioAUsar,
-    });
-    setVentaConfirmada({ items, total, medioPago: medioAUsar });
-    setConfirmada(true);
-    onVentaConfirmada?.();
-  }
+  // Alta rápida de cliente sin salir del cobro.
+  const [creandoCliente, setCreandoCliente] = useState(false);
+  const [nombreNuevo, setNombreNuevo] = useState('');
+  const [telefonoNuevo, setTelefonoNuevo] = useState('');
+
+  // Estado post-venta: nota lista para compartir.
+  const [ventaCerrada, setVentaCerrada] = useState(null);
+  const [mensajeCompartir, setMensajeCompartir] = useState('');
 
   useEffect(() => {
+    listarClientes().then(setClientes).catch(() => {});
+    listarInsumos()
+      .then((insumos) => setFaltantes(detectarStockInsuficiente(items, platos, combos, insumos)))
+      .catch(() => {});
+  }, [items, platos, combos]);
+
+  async function handleCrearCliente() {
+    if (!nombreNuevo.trim()) {
+      setError('Ingresá el nombre del cliente.');
+      return;
+    }
+    const cliente = await crearCliente({ nombre: nombreNuevo, telefono: telefonoNuevo });
+    setClientes((prev) => [...prev, cliente].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')));
+    setClienteId(cliente.id);
+    setCreandoCliente(false);
+    setNombreNuevo('');
+    setTelefonoNuevo('');
+    setError('');
+  }
+
+  async function handleConfirmar() {
+    if (tipoPago === 'fiado' && !clienteId) {
+      setError('Elegí a nombre de quién queda el fiado.');
+      return;
+    }
+    setGuardando(true);
+    setError('');
+    try {
+      await crearVenta({ items, tipoPago, medioPago, clienteId: clienteId || null, nota });
+      const cliente = clienteId ? await obtenerCliente(clienteId) : null;
+      const texto = generarNotaPedido({ items, total, tipoPago, medioPago, cliente, nota, negocio: 'Fudi POS' });
+      setVentaCerrada({ texto, cliente });
+    } catch (err) {
+      setError(err.message || 'No se pudo registrar la venta.');
+      setGuardando(false);
+    }
+  }
+
+  // Cobro rápido: se preseleccionó el medio de pago desde Vender, así que
+  // acá alcanza con confirmar de una sola vez, sin pasar por el formulario.
+  useEffect(() => {
     if (autoConfirmar && medioPagoInicial) {
-      confirmarCobro(medioPagoInicial);
+      handleConfirmar();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function compartir() {
-    const texto = armarTextoTicket(ventaConfirmada.items, ventaConfirmada.total, ventaConfirmada.medioPago);
-    compartirPorWhatsApp(texto, 'Ticket de venta');
+  async function handleCompartir() {
+    const resultado = await compartirNota(ventaCerrada.texto, ventaCerrada.cliente?.telefono);
+    if (resultado === 'copiado') setMensajeCompartir('Nota copiada al portapapeles.');
+    if (resultado === 'error') setMensajeCompartir('No se pudo compartir. Copiá el texto de arriba a mano.');
+  }
+
+  if (ventaCerrada) {
+    return (
+      <Modal
+        titulo="¡Venta registrada!"
+        onClose={onVentaCerrada}
+        footer={
+          <button type="button" className="btn btn--fantasma" onClick={onVentaCerrada}>
+            Listo
+          </button>
+        }
+      >
+        <div className="form">
+          <div className="venta-ok">
+            <BurgerMascot size={90} variant="success" className="venta-ok__mascota" />
+            <strong>{formatMoney(total)}</strong>
+            <small>
+              {tipoPago === 'fiado'
+                ? `Anotado en la cuenta de ${ventaCerrada.cliente?.nombre}`
+                : `Cobrado en ${MEDIOS_PAGO.find((m) => m.id === medioPago)?.label.toLowerCase()}`}
+            </small>
+          </div>
+
+          <pre className="nota-preview">{ventaCerrada.texto}</pre>
+
+          <button type="button" className="btn btn--primario" onClick={handleCompartir}>
+            Compartir ticket por WhatsApp
+          </button>
+          {mensajeCompartir && <p className="ayuda-texto">{mensajeCompartir}</p>}
+        </div>
+      </Modal>
+    );
+  }
+
+  if (autoConfirmar) {
+    // Mientras se resuelve el cobro rápido (guardando la venta) no hay
+    // formulario que mostrar: la confirmación ya se disparó sola arriba.
+    return (
+      <Modal titulo="Cobrando…" onClose={onCancelar}>
+        <p className="ayuda-texto">Un segundo…</p>
+        {error && <p className="mensaje-error">{error}</p>}
+      </Modal>
+    );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-cream rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400">
-          <X size={22} />
+    <Modal
+      titulo={`Cobrar ${formatMoney(total)}`}
+      onClose={onCancelar}
+      footer={
+        <button type="button" className="btn btn--primario" onClick={handleConfirmar} disabled={guardando}>
+          {guardando ? 'Guardando…' : 'Confirmar venta'}
         </button>
-
-        {!confirmada ? (
-          <>
-            <h2 className="font-display text-xl font-bold text-gray-800 mb-1">Cerrar venta</h2>
-            <p className="font-bouncy text-3xl font-extrabold text-coral mb-5">{formatoMoneda(total)}</p>
-
-            <p className="text-sm font-medium text-gray-600 mb-2">Medio de pago</p>
-            <div className="grid grid-cols-3 gap-2 mb-6">
-              {MEDIOS_PAGO.map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setMedioPago(id)}
-                  className={`flex flex-col items-center gap-1 py-3 rounded-3xl border-2 transition-colors ${
-                    medioPago === id ? 'border-mint bg-mint/10' : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <Icon size={22} className={medioPago === id ? 'text-mint' : 'text-gray-500'} />
-                  <span className="text-xs font-medium text-gray-700 text-center">{label}</span>
-                </button>
+      }
+    >
+      <div className="form">
+        {faltantes.length > 0 && (
+          <div className="aviso-stock">
+            <IconAlerta width={18} height={18} />
+            <div>
+              <strong>Ojo con el stock</strong>
+              {faltantes.map((f) => (
+                <small key={f.insumo.id}>
+                  {f.insumo.nombre}: necesitás {f.necesario} {f.insumo.unidad} y tenés {f.disponible}.
+                </small>
               ))}
+              <small>Igual podés cerrar la venta, el stock queda en cero.</small>
             </div>
-
-            <button
-              onClick={() => confirmarCobro()}
-              disabled={!medioPago}
-              className="w-full bg-mint disabled:bg-gray-300 text-white font-bold py-3 rounded-3xl active:scale-95 transition-transform"
-            >
-              Confirmar cobro
-            </button>
-          </>
-        ) : (
-          <div className="text-center py-2">
-            <BurgerMascot size={110} variant="success" className="mx-auto mb-3" />
-            <h2 className="font-display text-xl font-bold text-gray-800 mb-1">¡Venta cobrada!</h2>
-            <p className="font-bouncy text-2xl font-extrabold text-mint mb-6">{formatoMoneda(ventaConfirmada?.total)}</p>
-            <button
-              onClick={compartir}
-              className="w-full bg-mint text-white font-bold py-3 rounded-3xl flex items-center justify-center gap-2 mb-3 active:scale-95 transition-transform"
-            >
-              <Share2 size={18} /> Compartir ticket por WhatsApp
-            </button>
-            <button onClick={onClose} className="w-full text-gray-500 font-medium py-2">
-              Cerrar
-            </button>
           </div>
         )}
+
+        <div className="segmentado">
+          <button
+            type="button"
+            className={tipoPago === 'inmediato' ? 'is-active' : ''}
+            onClick={() => setTipoPago('inmediato')}
+          >
+            Pago ahora
+          </button>
+          <button
+            type="button"
+            className={tipoPago === 'fiado' ? 'is-active' : ''}
+            onClick={() => setTipoPago('fiado')}
+          >
+            Fiado
+          </button>
+        </div>
+
+        {tipoPago === 'inmediato' && (
+          <div className="opciones-pago">
+            {MEDIOS_PAGO.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`opcion-pago${medioPago === m.id ? ' is-active' : ''}`}
+                onClick={() => setMedioPago(m.id)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <label className="campo">
+          <span>{tipoPago === 'fiado' ? 'Cliente (a quién se le fía)' : 'Cliente (opcional)'}</span>
+          <select value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+            <option value="">— Sin cliente —</option>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </label>
+
+        {creandoCliente ? (
+          <div className="alta-rapida">
+            <div className="campo-fila">
+              <label className="campo">
+                <span>Nombre</span>
+                <input value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} autoFocus />
+              </label>
+              <label className="campo">
+                <span>Teléfono</span>
+                <input
+                  value={telefonoNuevo}
+                  onChange={(e) => setTelefonoNuevo(e.target.value)}
+                  inputMode="tel"
+                  placeholder="Ej: 3415551234"
+                />
+              </label>
+            </div>
+            <div className="campo-fila">
+              <button type="button" className="btn btn--fantasma" onClick={() => setCreandoCliente(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn--secundario" onClick={handleCrearCliente}>
+                Guardar cliente
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="btn btn--secundario btn--chico" onClick={() => setCreandoCliente(true)}>
+            + Cliente nuevo
+          </button>
+        )}
+
+        <label className="campo">
+          <span>Nota para el pedido (opcional)</span>
+          <input
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder="Ej: retira 20:30, sin cebolla"
+          />
+        </label>
+
+        {error && <p className="mensaje-error">{error}</p>}
       </div>
-    </div>
+    </Modal>
   );
 }

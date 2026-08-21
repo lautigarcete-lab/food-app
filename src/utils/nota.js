@@ -9,8 +9,8 @@ const formatoFecha = new Intl.DateTimeFormat('es-AR', {
 
 const ETIQUETA_MEDIO_PAGO = {
   efectivo: 'Efectivo',
-  transferencia: 'Transferencia',
-  otro: 'Otro',
+  mercadopago: 'Mercado Pago',
+  tarjeta: 'Tarjeta',
 };
 
 /**

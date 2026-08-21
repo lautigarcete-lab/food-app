@@ -138,3 +138,16 @@ export function IconTareas(props) {
     </svg>
   );
 }
+
+export function IconCierre(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3v3" />
+      <path d="M4 8h16" />
+      <path d="M6 8l1.5 4.5a2.5 2.5 0 0 0 4.7 0L14 8" />
+      <path d="M10 8l1.5 4.5a2.5 2.5 0 0 0 4.7 0L18 8" />
+      <path d="M12 12v6" />
+      <path d="M8.5 21h7" />
+    </svg>
+  );
+}
