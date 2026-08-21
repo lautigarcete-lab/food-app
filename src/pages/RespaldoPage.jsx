@@ -8,7 +8,7 @@ export default function RespaldoPage() {
 
   function nombreArchivo() {
     const fecha = new Date().toISOString().slice(0, 10);
-    return `burgerpos-respaldo-${fecha}.json`;
+    return `fudipos-respaldo-${fecha}.json`;
   }
 
   async function compartirRespaldo() {
@@ -20,8 +20,8 @@ export default function RespaldoPage() {
       try {
         await navigator.share({
           files: [archivo],
-          title: 'Respaldo BurgerPOS',
-          text: 'Respaldo de datos de BurgerPOS',
+          title: 'Respaldo Fudi POS',
+          text: 'Respaldo de datos de Fudi POS',
         });
         setMensaje('Respaldo compartido correctamente.');
         return;
@@ -62,7 +62,7 @@ export default function RespaldoPage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold text-gray-800 mb-5">Respaldo</h1>
+      <h1 className="font-display text-2xl font-bold text-gray-800 mb-5">Respaldo</h1>
 
       <div className="bg-white rounded-3xl p-5 mb-4">
         <p className="text-sm text-gray-600 mb-4">

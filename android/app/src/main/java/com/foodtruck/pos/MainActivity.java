@@ -1,4 +1,4 @@
-package com.burgerpos.app;
+package com.foodtruck.pos;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -1,11 +1,11 @@
-// Capa simple de persistencia local (localStorage) para BurgerPOS.
+// Capa simple de persistencia local (localStorage) para Fudi POS.
 // Pensada para funcionar 100% offline dentro de la app empaquetada con Capacitor.
 
 const KEYS = {
-  insumos: 'burgerpos:insumos',
-  platos: 'burgerpos:platos',
-  ventas: 'burgerpos:ventas',
-  gastos: 'burgerpos:gastos',
+  insumos: 'fudipos:insumos',
+  platos: 'fudipos:platos',
+  ventas: 'fudipos:ventas',
+  gastos: 'fudipos:gastos',
 };
 
 function read(key) {

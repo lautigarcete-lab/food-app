@@ -13,9 +13,11 @@ export default function InsumoFormModal({ insumoExistente, onClose, onGuardado }
   const [precio, setPrecio] = useState(insumoExistente?.precio ?? '');
   const [contenido, setContenido] = useState(insumoExistente?.contenido ?? '');
   const [unidad, setUnidad] = useState(insumoExistente?.unidad || 'gr');
+  const [stock, setStock] = useState(insumoExistente?.stock ?? '');
 
   const precioNum = parseFloat(precio) || 0;
   const contenidoNum = parseFloat(contenido) || 0;
+  const stockNum = parseFloat(stock) || 0;
   const costoUnitario = contenidoNum > 0 ? precioNum / contenidoNum : 0;
 
   function guardar(e) {
@@ -27,6 +29,7 @@ export default function InsumoFormModal({ insumoExistente, onClose, onGuardado }
       precio: precioNum,
       contenido: contenidoNum,
       unidad,
+      stock: stockNum,
     });
     onGuardado?.(nuevo);
     onClose?.();
@@ -39,7 +42,7 @@ export default function InsumoFormModal({ insumoExistente, onClose, onGuardado }
           <X size={22} />
         </button>
 
-        <h2 className="text-xl font-bold text-gray-800 mb-5">
+        <h2 className="font-display text-xl font-bold text-gray-800 mb-5">
           {insumoExistente ? 'Editar insumo' : 'Nuevo insumo'}
         </h2>
 
@@ -77,7 +80,7 @@ export default function InsumoFormModal({ insumoExistente, onClose, onGuardado }
         </div>
 
         <label className="block text-sm font-medium text-gray-600 mb-1">Unidad</label>
-        <div className="grid grid-cols-3 gap-2 mb-5">
+        <div className="grid grid-cols-3 gap-2 mb-4">
           {UNIDADES.map((u) => (
             <button
               key={u.id}
@@ -91,6 +94,16 @@ export default function InsumoFormModal({ insumoExistente, onClose, onGuardado }
             </button>
           ))}
         </div>
+
+        <label className="block text-sm font-medium text-gray-600 mb-1">Stock de envases/paquetes</label>
+        <input
+          type="number"
+          inputMode="decimal"
+          value={stock}
+          onChange={(e) => setStock(e.target.value)}
+          placeholder="Cantidad de envases en stock"
+          className="w-full mb-5 px-4 py-3 rounded-3xl border border-gray-200 bg-white focus:outline-none focus:border-mint"
+        />
 
         <div className="bg-cheddar/20 border border-cheddar/40 rounded-3xl p-3 mb-5 text-sm text-gray-700">
           Costo unitario: <strong>{formatoMoneda(costoUnitario)}</strong> por {unidad}

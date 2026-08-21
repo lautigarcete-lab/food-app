@@ -5,7 +5,7 @@ import { getVentas, getGastos, esMismoDia, formatoMoneda, compartirPorWhatsApp }
 
 const LABELS_MEDIO_PAGO = {
   efectivo: 'Efectivo',
-  mercadopago: 'Mercado Pago',
+  mercadopago: 'Mercado Pago / Transferencia',
   tarjeta: 'Tarjeta',
 };
 
@@ -57,7 +57,7 @@ export default function CierreJornadaModal({ onClose }) {
 
         <div className="text-center mb-4">
           <BurgerMascot size={100} variant="balance" className="mx-auto mb-2" />
-          <h2 className="text-xl font-bold text-gray-800">Cierre de jornada</h2>
+          <h2 className="font-display text-xl font-bold text-gray-800">Cierre de jornada</h2>
           <p className="text-sm text-gray-400">{new Date().toLocaleDateString('es-AR')}</p>
         </div>
 
@@ -81,7 +81,7 @@ export default function CierreJornadaModal({ onClose }) {
 
         <div className="bg-mint/10 border border-mint/30 rounded-3xl p-4 mb-5 flex justify-between items-center">
           <span className="font-semibold text-gray-700">Balance neto</span>
-          <span className="text-2xl font-extrabold text-mint">{formatoMoneda(resumen.balanceNeto)}</span>
+          <span className="font-bouncy text-2xl font-extrabold text-mint">{formatoMoneda(resumen.balanceNeto)}</span>
         </div>
 
         <button

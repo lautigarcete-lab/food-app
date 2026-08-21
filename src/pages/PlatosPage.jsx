@@ -20,7 +20,7 @@ export default function PlatosPage() {
   return (
     <div className="p-4 pb-24">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-gray-800">Platos</h1>
+        <h1 className="font-display text-2xl font-bold text-gray-800">Platos</h1>
         <button
           onClick={() => {
             setEditando(null);

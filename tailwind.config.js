@@ -12,6 +12,10 @@ export default {
       borderRadius: {
         '3xl': '1.5rem',
       },
+      fontFamily: {
+        display: ['Fraunces', 'Georgia', 'serif'],
+        bouncy: ['Fredoka', 'Inter', 'system-ui', 'sans-serif'],
+      },
     },
   },
   plugins: [],

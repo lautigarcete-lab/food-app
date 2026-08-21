@@ -1,5 +1,5 @@
 {
-  "appId": "com.burgerpos.app",
-  "appName": "BurgerPOS",
+  "appId": "com.foodtruck.pos",
+  "appName": "Fudi POS",
   "webDir": "dist"
 }

@@ -26,7 +26,7 @@ export default function GastosPage() {
   return (
     <div className="p-4 pb-24">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-gray-800">Gastos</h1>
+        <h1 className="font-display text-2xl font-bold text-gray-800">Gastos</h1>
         <button
           onClick={() => setMostrarCierre(true)}
           className="flex items-center gap-1.5 bg-mint/10 text-mint font-medium text-sm px-3 py-2 rounded-3xl"

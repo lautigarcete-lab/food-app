@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Vite build output
+dist/
+dist-ssr/
+
+# Editor / OS
+.DS_Store
+*.local
+
+# Android / Gradle build outputs
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/capacitor-cordova-android-plugins/build/
+android/captures/
+*.iml
+.idea/

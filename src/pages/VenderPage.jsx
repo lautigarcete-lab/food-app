@@ -1,12 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Trash2, Zap, Banknote, CreditCard, Smartphone } from 'lucide-react';
 import { getPlatos, formatoMoneda } from '../lib/db';
 import CerrarVentaModal from './CerrarVentaModal';
+
+const MEDIOS_PAGO = [
+  { id: 'efectivo', label: 'Efectivo', icon: Banknote },
+  { id: 'mercadopago', label: 'MP / Transf.', icon: Smartphone },
+  { id: 'tarjeta', label: 'Tarjeta', icon: CreditCard },
+];
 
 export default function VenderPage() {
   const platos = useMemo(() => getPlatos(), []);
   const [carrito, setCarrito] = useState({}); // { platoId: cantidad }
+  const [medioPago, setMedioPago] = useState(null);
   const [mostrarCierre, setMostrarCierre] = useState(false);
+  const [cobroRapido, setCobroRapido] = useState(false);
 
   function agregar(plato) {
     setCarrito((c) => ({ ...c, [plato.id]: (c[plato.id] || 0) + 1 }));
@@ -24,6 +32,7 @@ export default function VenderPage() {
 
   function vaciarCarrito() {
     setCarrito({});
+    setMedioPago(null);
   }
 
   const items = Object.entries(carrito)
@@ -46,7 +55,7 @@ export default function VenderPage() {
 
   return (
     <div className="p-4 pb-28">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">Vender</h1>
+      <h1 className="font-display text-2xl font-bold text-gray-800 mb-4">Vender</h1>
 
       <div className="grid grid-cols-2 gap-3">
         {platos.map((plato) => {
@@ -72,8 +81,8 @@ export default function VenderPage() {
       </div>
 
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-4">
-          <div className="max-h-40 overflow-y-auto mb-3 space-y-2">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-4">
+          <div className="max-h-32 overflow-y-auto mb-3 space-y-2">
             {items.map(({ plato, cantidad }) => (
               <div key={plato.id} className="flex items-center justify-between text-sm">
                 <span className="text-gray-700">{plato.nombre}</span>
@@ -89,18 +98,49 @@ export default function VenderPage() {
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-between mb-3">
+
+          <div className="flex items-center justify-between mb-2">
             <button onClick={vaciarCarrito} className="flex items-center gap-1 text-gray-400 text-sm">
               <Trash2 size={16} /> Vaciar
             </button>
-            <span className="text-lg font-bold text-gray-800">{formatoMoneda(total)}</span>
+            <span className="font-bouncy text-lg font-bold text-gray-800">{formatoMoneda(total)}</span>
           </div>
-          <button
-            onClick={() => setMostrarCierre(true)}
-            className="w-full bg-mint text-white font-bold py-3 rounded-3xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
-          >
-            <ShoppingCart size={18} /> Cobrar ({cantidadTotal})
-          </button>
+
+          <p className="text-xs font-medium text-gray-500 mb-1.5">Medio de pago</p>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {MEDIOS_PAGO.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setMedioPago(id)}
+                className={`flex flex-col items-center gap-0.5 py-2 rounded-2xl border-2 transition-colors ${
+                  medioPago === id ? 'border-mint bg-mint/10' : 'border-gray-200 bg-white'
+                }`}
+              >
+                <Icon size={18} className={medioPago === id ? 'text-mint' : 'text-gray-500'} />
+                <span className="text-[11px] font-medium text-gray-700 text-center">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setMostrarCierre(true)}
+              className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-3xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
+              <ShoppingCart size={18} /> Cobrar ({cantidadTotal})
+            </button>
+            <button
+              onClick={() => {
+                if (!medioPago) return;
+                setCobroRapido(true);
+                setMostrarCierre(true);
+              }}
+              disabled={!medioPago}
+              className="flex-1 bg-cheddar disabled:bg-gray-300 text-gray-900 font-bold py-3 rounded-3xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
+              <Zap size={18} /> Cobro rápido
+            </button>
+          </div>
         </div>
       )}
 
@@ -108,9 +148,15 @@ export default function VenderPage() {
         <CerrarVentaModal
           items={items}
           total={total}
-          onClose={() => setMostrarCierre(false)}
+          medioPagoInicial={medioPago}
+          autoConfirmar={cobroRapido}
+          onClose={() => {
+            setMostrarCierre(false);
+            setCobroRapido(false);
+          }}
           onVentaConfirmada={() => {
             vaciarCarrito();
+            setCobroRapido(false);
           }}
         />
       )}

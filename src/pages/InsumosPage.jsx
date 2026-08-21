@@ -20,7 +20,7 @@ export default function InsumosPage() {
   return (
     <div className="p-4 pb-24">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-gray-800">Insumos</h1>
+        <h1 className="font-display text-2xl font-bold text-gray-800">Insumos</h1>
         <button
           onClick={() => {
             setEditando(null);
@@ -41,7 +41,7 @@ export default function InsumosPage() {
               <div>
                 <p className="font-semibold text-gray-800">{insumo.nombre}</p>
                 <p className="text-gray-400 text-sm">
-                  {formatoMoneda(insumo.costoUnitario)} / {insumo.unidad}
+                  {formatoMoneda(insumo.costoUnitario)} / {insumo.unidad} · Stock: {insumo.stock ?? 0} envases
                 </p>
               </div>
               <div className="flex items-center gap-2">

@@ -52,7 +52,7 @@ export default function PlatoFormModal({ platoExistente, onClose, onGuardado }) 
           <X size={22} />
         </button>
 
-        <h2 className="text-xl font-bold text-gray-800 mb-5">
+        <h2 className="font-display text-xl font-bold text-gray-800 mb-5">
           {platoExistente ? 'Editar plato' : 'Nuevo plato'}
         </h2>
 

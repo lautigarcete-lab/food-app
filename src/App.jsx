@@ -25,7 +25,7 @@ export default function App() {
       <header className="flex items-center gap-3 px-4 pt-6 pb-2">
         <BurgerMascot size={44} />
         <div>
-          <h1 className="font-extrabold text-gray-800 leading-tight">BurgerPOS</h1>
+          <h1 className="font-display font-black text-xl text-gray-800 leading-tight">Fudi POS</h1>
           <p className="text-xs text-gray-400">Tu caja registradora de bolsillo</p>
         </div>
       </header>
