@@ -1,217 +1,178 @@
-import { useEffect, useMemo, useState } from 'react';
-import Header from '../components/Header.jsx';
-import EmptyState from '../components/EmptyState.jsx';
-import Modal from '../components/Modal.jsx';
-import CerrarVentaModal from './CerrarVentaModal.jsx';
-import BurgerMascot from '../components/BurgerMascot.jsx';
-import { listarPlatos } from '../db/repositories/platosRepo.js';
-import { listarCombos } from '../db/repositories/combosRepo.js';
-import { formatMoney } from '../utils/money.js';
-import { IconCerrar } from '../components/icons.jsx';
-
-const claveDe = (tipo, refId) => `${tipo}:${refId}`;
+import React, { useState, useEffect } from 'react';
+import { platosRepo } from '../db/repositories/platosRepo';
+import { combosRepo } from '../db/repositories/combosRepo';
+import { formatMoney } from '../utils/money';
+import BurgerMascot from '../components/BurgerMascot';
+import CerrarVentaModal from './CerrarVentaModal';
+import CierreJornadaModal from '../components/CierreJornadaModal';
 
 export default function VenderPage() {
-  const [platos, setPlatos] = useState([]);
-  const [combos, setCombos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [categoria, setCategoria] = useState('todos');
+  const [catalogo, setCatalogo] = useState([]);
   const [carrito, setCarrito] = useState([]);
-  const [verCarrito, setVerCarrito] = useState(false);
-  const [cobrando, setCobrando] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState('todos');
+  const [modalCobro, setModalCobro] = useState(false);
+  const [modalCierre, setModalCierre] = useState(false);
+  const [medioPagoDirecto, setMedioPagoDirecto] = useState('Efectivo');
 
   useEffect(() => {
-    Promise.all([listarPlatos(), listarCombos()])
-      .then(([p, c]) => {
-        setPlatos(p);
-        setCombos(c);
-      })
-      .finally(() => setCargando(false));
+    cargarProductos();
   }, []);
 
-  const categorias = useMemo(() => {
-    const set = new Set(platos.map((p) => p.categoria).filter(Boolean));
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [platos]);
+  const cargarProductos = async () => {
+    const p = await platosRepo.listar();
+    const c = await combosRepo.listar();
+    setCatalogo([...(p || []), ...(c || []).map(item => ({ ...item, esCombo: true }))]);
+  };
 
-  // Lo que se muestra en el grid: platos filtrados por categoría, o combos.
-  const tarjetas = useMemo(() => {
-    if (categoria === 'combos') {
-      return combos.map((c) => ({ tipo: 'combo', id: c.id, nombre: c.nombre, precio: c.precioEspecial, foto: null }));
-    }
-    return platos
-      .filter((p) => categoria === 'todos' || p.categoria === categoria)
-      .map((p) => ({ tipo: 'plato', id: p.id, nombre: p.nombre, precio: p.precio, foto: p.foto }));
-  }, [categoria, platos, combos]);
-
-  const total = carrito.reduce((acc, item) => acc + item.precioUnitario * item.cantidad, 0);
-  const cantidadTotal = carrito.reduce((acc, item) => acc + item.cantidad, 0);
-
-  function agregar(tarjeta) {
-    setCarrito((prev) => {
-      const clave = claveDe(tarjeta.tipo, tarjeta.id);
-      const existente = prev.find((i) => claveDe(i.tipo, i.refId) === clave);
-      if (existente) {
-        return prev.map((i) =>
-          claveDe(i.tipo, i.refId) === clave ? { ...i, cantidad: i.cantidad + 1 } : i
-        );
+  const agregarAlCarrito = (item) => {
+    setCarrito(prev => {
+      const existe = prev.find(x => x.id === item.id);
+      if (existe) {
+        return prev.map(x => x.id === item.id ? { ...x, cantidad: x.cantidad + 1 } : x);
       }
-      return [
-        ...prev,
-        { tipo: tarjeta.tipo, refId: tarjeta.id, nombre: tarjeta.nombre, precioUnitario: tarjeta.precio, cantidad: 1 },
-      ];
+      return [...prev, { ...item, cantidad: 1 }];
     });
-  }
+  };
 
-  function cambiarCantidad(clave, delta) {
-    setCarrito((prev) =>
-      prev
-        .map((i) => (claveDe(i.tipo, i.refId) === clave ? { ...i, cantidad: i.cantidad + delta } : i))
-        .filter((i) => i.cantidad > 0)
-    );
-  }
-
-  function quitar(clave) {
-    setCarrito((prev) => prev.filter((i) => claveDe(i.tipo, i.refId) !== clave));
-  }
-
-  function cantidadEnCarrito(tarjeta) {
-    const item = carrito.find((i) => claveDe(i.tipo, i.refId) === claveDe(tarjeta.tipo, tarjeta.id));
-    return item?.cantidad || 0;
-  }
-
-  function handleVentaCerrada() {
-    setCarrito([]);
-    setCobrando(false);
-    setVerCarrito(false);
-  }
-
-  const sinCatalogo = !cargando && platos.length === 0 && combos.length === 0;
+  const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
   return (
-    <div className="page">
-      <Header titulo="Vender" accion={<BurgerMascot size={36} variant={carrito.length > 0 ? 'success' : 'normal'} />} />
-      <div className="page__content page__content--venta">
-        {cargando ? (
-          <p className="ayuda-texto">Cargando…</p>
-        ) : sinCatalogo ? (
-          <EmptyState
-            emoji="🍽️"
-            titulo="Primero cargá tu menú"
-            descripcion="Andá a Catálogo y creá tus platos. Después vas a poder venderlos de un toque desde acá."
-          />
-        ) : (
-          <>
-            <div className="chips">
-              <button
-                type="button"
-                className={categoria === 'todos' ? 'is-active' : ''}
-                onClick={() => setCategoria('todos')}
-              >
-                Todos
-              </button>
-              {categorias.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={categoria === c ? 'is-active' : ''}
-                  onClick={() => setCategoria(c)}
-                >
-                  {c}
-                </button>
-              ))}
-              {combos.length > 0 && (
-                <button
-                  type="button"
-                  className={categoria === 'combos' ? 'is-active' : ''}
-                  onClick={() => setCategoria('combos')}
-                >
-                  Combos
-                </button>
-              )}
-            </div>
-
-            {tarjetas.length === 0 ? (
-              <EmptyState emoji="🔍" titulo="No hay nada en esta categoría" />
-            ) : (
-              <div className="grid-venta">
-                {tarjetas.map((tarjeta) => {
-                  const enCarrito = cantidadEnCarrito(tarjeta);
-                  return (
-                    <button
-                      key={claveDe(tarjeta.tipo, tarjeta.id)}
-                      type="button"
-                      className={`venta-card${enCarrito ? ' is-en-carrito' : ''}`}
-                      onClick={() => agregar(tarjeta)}
-                    >
-                      {enCarrito > 0 && <span className="venta-card__badge">{enCarrito}</span>}
-                      <span className="venta-card__nombre">{tarjeta.nombre}</span>
-                      <span className="venta-card__precio">{formatMoney(tarjeta.precio)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
+    <div className="flex flex-col h-screen max-w-md mx-auto pb-20 bg-[#FDFBF7]">
+      {/* Header FUDI POS */}
+      <div className="bg-[#10B981] text-white px-4 py-3 rounded-b-3xl shadow-md flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BurgerMascot size={52} variant="normal" />
+          <div>
+            <h1 className="text-lg font-black leading-tight">FUDI POS</h1>
+            <p className="text-[11px] text-emerald-100 font-medium">Caja de Cobro Rápido</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setModalCierre(true)}
+            className="text-xs bg-emerald-700/90 text-white px-2.5 py-1.5 rounded-xl font-bold active:scale-95 flex items-center gap-1 shadow-sm"
+          >
+            <span>📊</span> Cierre
+          </button>
+          {carrito.length > 0 && (
+            <button
+              onClick={() => setCarrito([])}
+              className="text-xs bg-red-500/90 text-white px-2.5 py-1.5 rounded-xl font-bold active:scale-95 shadow-sm"
+            >
+              Vaciar
+            </button>
+          )}
+        </div>
       </div>
 
-      {carrito.length > 0 && (
-        <div className="barra-carrito">
-          <button type="button" className="barra-carrito__resumen" onClick={() => setVerCarrito(true)}>
-            <strong>{formatMoney(total)}</strong>
-            <small>{cantidadTotal} {cantidadTotal === 1 ? 'ítem' : 'ítems'} · ver detalle</small>
+      {/* Categorías */}
+      <div className="flex gap-2 px-3 py-2.5 overflow-x-auto no-scrollbar">
+        {['todos', 'platos', 'combos'].map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setFiltroCategoria(cat)}
+            className={`px-4 py-1.5 rounded-full text-xs font-black capitalize transition-all shrink-0 ${
+              filtroCategoria === cat
+                ? 'bg-[#10B981] text-white shadow-sm'
+                : 'bg-white text-gray-600 border border-gray-200'
+            }`}
+          >
+            {cat}
           </button>
-          <button type="button" className="btn btn--primario barra-carrito__cobrar" onClick={() => setCobrando(true)}>
-            Cobrar
+        ))}
+      </div>
+
+      {/* Catálogo en Grilla */}
+      <div className="flex-1 overflow-y-auto px-3 grid grid-cols-2 gap-2.5 pb-4">
+        {catalogo
+          .filter(item => {
+            if (filtroCategoria === 'platos') return !item.esCombo;
+            if (filtroCategoria === 'combos') return item.esCombo;
+            return true;
+          })
+          .map(item => {
+            const enCarrito = carrito.find(x => x.id === item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => agregarAlCarrito(item)}
+                className={`card-soft p-3 text-left flex flex-col justify-between relative active:scale-95 transition-all ${
+                  enCarrito ? 'border-[#10B981] bg-emerald-50/50' : 'bg-white'
+                }`}
+              >
+                {enCarrito && (
+                  <span className="absolute top-2 right-2 bg-[#10B981] text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center shadow">
+                    {enCarrito.cantidad}
+                  </span>
+                )}
+                <div>
+                  <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider block mb-0.5">
+                    {item.esCombo ? '🔥 Combo' : '🍔 Plato'}
+                  </span>
+                  <h3 className="font-black text-gray-800 text-sm line-clamp-2 leading-tight">{item.nombre}</h3>
+                </div>
+                <div className="mt-3">
+                  <span className="text-base font-black text-gray-900">{formatMoney(item.precio)}</span>
+                </div>
+              </button>
+            );
+          })}
+      </div>
+
+      {/* Barra de Cobro Fija */}
+      <div className="bg-white border-t border-gray-100 p-3 rounded-t-3xl shadow-xl">
+        <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+          {['Efectivo', 'Mercado Pago', 'Tarjeta'].map(medio => (
+            <button
+              key={medio}
+              onClick={() => setMedioPagoDirecto(medio)}
+              className={`py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                medioPagoDirecto === medio
+                  ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                  : 'bg-gray-50 text-gray-600 border-gray-200'
+              }`}
+            >
+              {medio === 'Efectivo' ? '💵 ' : medio === 'Mercado Pago' ? '📱 ' : '💳 '}
+              {medio}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <span className="text-[10px] text-gray-400 font-bold block uppercase">Total a Cobrar</span>
+            <span className="text-2xl font-black text-gray-900 leading-none">{formatMoney(total)}</span>
+          </div>
+          <button
+            disabled={carrito.length === 0}
+            onClick={() => setModalCobro(true)}
+            className={`btn-pos px-6 py-3.5 flex items-center justify-center gap-2 text-white shadow-lg ${
+              carrito.length > 0
+                ? 'bg-[#10B981] hover:bg-emerald-700 shadow-emerald-200 cursor-pointer'
+                : 'bg-gray-300 cursor-not-allowed'
+            }`}
+          >
+            <span className="text-base font-black">Cobrar</span>
+            <span className="text-sm">👉</span>
           </button>
         </div>
-      )}
+      </div>
 
-      {verCarrito && (
-        <Modal
-          titulo="Venta actual"
-          onClose={() => setVerCarrito(false)}
-          footer={
-            <button type="button" className="btn btn--primario" onClick={() => { setVerCarrito(false); setCobrando(true); }}>
-              Cobrar {formatMoney(total)}
-            </button>
-          }
-        >
-          <ul className="lista-carrito">
-            {carrito.map((item) => {
-              const clave = claveDe(item.tipo, item.refId);
-              return (
-                <li key={clave} className="carrito-item">
-                  <div className="carrito-item__info">
-                    <strong>{item.nombre}</strong>
-                    <small>{formatMoney(item.precioUnitario)} c/u</small>
-                  </div>
-                  <div className="carrito-item__acciones">
-                    <button type="button" onClick={() => cambiarCantidad(clave, -1)} aria-label="Restar uno">−</button>
-                    <span>{item.cantidad}</span>
-                    <button type="button" onClick={() => cambiarCantidad(clave, 1)} aria-label="Sumar uno">+</button>
-                  </div>
-                  <strong className="carrito-item__subtotal">{formatMoney(item.precioUnitario * item.cantidad)}</strong>
-                  <button type="button" className="icon-button" onClick={() => quitar(clave)} aria-label="Quitar">
-                    <IconCerrar width={16} height={16} />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </Modal>
-      )}
-
-      {cobrando && (
+      {modalCobro && (
         <CerrarVentaModal
-          items={carrito}
+          carrito={carrito}
           total={total}
-          platos={platos}
-          combos={combos}
-          onCancelar={() => setCobrando(false)}
-          onVentaCerrada={handleVentaCerrada}
+          medioPagoPreseleccionado={medioPagoDirecto}
+          onClose={() => setModalCobro(false)}
+          onVentaCompletada={() => {
+            setCarrito([]);
+            setModalCobro(false);
+          }}
         />
+      )}
+
+      {modalCierre && (
+        <CierreJornadaModal onClose={() => setModalCierre(false)} />
       )}
     </div>
   );
