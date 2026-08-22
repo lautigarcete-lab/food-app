@@ -2,10 +2,13 @@
 /* Tipografías propias — autohospedadas para que funcionen 100% offline */
 /* ------------------------------------------------------------------ */
 
+/* Nunito para todo el texto y Fredoka para títulos y números grandes: las
+   dos son redondeadas y amigables. Antes los títulos usaban Fraunces, una
+   serif que chocaba con el resto y hacía ver la app anticuada. */
 @font-face {
-  font-family: 'Fraunces';
-  src: url('/fonts/Fraunces-Variable.woff2') format('woff2');
-  font-weight: 100 900;
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-Variable.woff2') format('woff2');
+  font-weight: 400 900;
   font-style: normal;
   font-display: swap;
 }
@@ -39,17 +42,17 @@
   --color-alerta-suave: #fbe4e0;
   --color-exito: #2e8b57;
 
-  --radio: 20px;
-  --radio-chico: 12px;
+  --radio: 24px;
+  --radio-chico: 16px;
   --radio-pill: 999px;
-  --sombra: 0 4px 16px rgba(14, 30, 24, 0.08);
+  --sombra: 0 6px 20px rgba(14, 30, 24, 0.07);
   --sombra-fuerte: 0 14px 30px rgba(9, 28, 20, 0.22);
   --degradado-primario: linear-gradient(165deg, #17724a 0%, #0e4d34 55%, #092a1c 100%);
 
   --nav-alto: 78px;
-  --fuente-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --fuente-titulos: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --fuente-logo: 'Fredoka', var(--fuente-titulos);
+  --fuente-base: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --fuente-titulos: 'Fredoka', var(--fuente-base);
+  --fuente-logo: 'Fredoka', var(--fuente-base);
   color-scheme: light;
 }
 
@@ -86,7 +89,8 @@ h1,
 h2,
 h3 {
   font-family: var(--fuente-titulos);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .marca {
@@ -341,11 +345,18 @@ h3 {
 
 .campo input,
 .campo select {
-  min-height: 48px;
-  padding: 0 12px;
+  min-height: 52px;
+  padding: 0 16px;
   border-radius: var(--radio-chico);
-  border: 1px solid var(--color-borde);
+  border: 1.5px solid var(--color-borde);
   background: var(--color-superficie);
+  font-weight: 600;
+}
+
+.campo input:focus,
+.campo select:focus {
+  outline: none;
+  border-color: var(--color-primario);
 }
 
 .campo-fila {

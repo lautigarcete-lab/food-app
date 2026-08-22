@@ -25,23 +25,34 @@ function coleccion(store) {
   return collection(db, 'negocios', getNegocioActivo(), store);
 }
 
+// En Firestore el id ya es el nombre del documento, así que guardarlo
+// además como un campo adentro es redundante — y las reglas de seguridad
+// rechazan cualquier campo que no esté en su lista blanca, así que un "id"
+// adentro hacía fallar TODA escritura con "Missing or insufficient
+// permissions". Se saca al guardar y se vuelve a poner al leer, de modo
+// que el resto de la app sigue viendo objetos con .id como siempre.
+function conId(docSnap) {
+  return { ...docSnap.data(), id: docSnap.id };
+}
+
 export async function getAll(store) {
   const snap = await getDocs(coleccion(store));
-  return snap.docs.map((d) => d.data());
+  return snap.docs.map(conId);
 }
 
 export async function getAllByIndex(store, campo, valor) {
   const snap = await getDocs(query(coleccion(store), where(campo, '==', valor)));
-  return snap.docs.map((d) => d.data());
+  return snap.docs.map(conId);
 }
 
 export async function getById(store, id) {
   const snap = await getDoc(doc(coleccion(store), id));
-  return snap.exists() ? snap.data() : undefined;
+  return snap.exists() ? conId(snap) : undefined;
 }
 
 export async function put(store, valor) {
-  await setDoc(doc(coleccion(store), valor.id), valor);
+  const { id, ...campos } = valor;
+  await setDoc(doc(coleccion(store), id), campos);
   return valor;
 }
 
