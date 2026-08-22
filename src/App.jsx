@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav.jsx';
+import FudiLogo from './components/FudiLogo.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import VenderPage from './pages/VenderPage.jsx';
 import CatalogoPage from './pages/CatalogoPage.jsx';
@@ -46,13 +47,29 @@ function AppPrincipal() {
 
 function PantallaEsperando({ texto, mostrarReintentar, onReintentar }) {
   return (
-    <div className="pantalla-centrada">
-      <p className="marca">Fudi</p>
-      <p className="ayuda-texto">{texto}</p>
-      {mostrarReintentar && (
-        <button type="button" className="btn btn--secundario" onClick={onReintentar}>
+    <div className="min-h-screen bg-fudi-bg font-sans flex flex-col items-center justify-center px-8 text-center">
+      <FudiLogo size={88} />
+      <h1 className="text-3xl font-black tracking-tight text-fudi-text mt-7">Fudi</h1>
+      <p className="text-sm font-medium text-fudi-muted mt-2 max-w-[16rem]">{texto}</p>
+
+      {mostrarReintentar ? (
+        <button
+          type="button"
+          onClick={onReintentar}
+          className="mt-7 bg-fudi-yellow text-fudi-text rounded-2xl font-bold min-h-[52px] px-8 shadow-sm transition-transform active:scale-[0.98]"
+        >
           Reintentar
         </button>
+      ) : (
+        <div className="flex gap-2 mt-7" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="w-2 h-2 rounded-full bg-fudi-yellow animar-punto"
+              style={{ animationDelay: `${i * 0.16}s` }}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

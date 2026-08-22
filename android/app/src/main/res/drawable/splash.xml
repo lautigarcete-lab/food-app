@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pantalla que muestra Android mientras levanta la app. Es una lista de
+     capas (fondo liso + la marca centrada) en vez de una sola imagen: así
+     la "F" nunca se estira ni se recorta, sea cual sea la pantalla. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/fudi_fondo" />
+    <item>
+        <bitmap
+            android:src="@drawable/fudi_marca"
+            android:gravity="center" />
+    </item>
+</layer-list>

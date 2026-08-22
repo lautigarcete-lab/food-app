@@ -107,6 +107,23 @@ h3 {
   letter-spacing: -0.02em;
 }
 
+/* Puntitos de la pantalla de arranque. */
+@keyframes fudi-punto {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.animar-punto {
+  animation: fudi-punto 1s ease-in-out infinite;
+}
+
 .marca {
   font-family: var(--fuente-logo);
   font-weight: 800;

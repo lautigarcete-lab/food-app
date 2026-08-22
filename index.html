@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0e4d34" />
+    <meta name="theme-color" content="#FDFBF7" />
     <title>Fudi POS</title>
   </head>
   <body>
@@ -13,12 +13,28 @@
          arranque se veía como una pantalla en blanco sin ninguna explicación. -->
     <div id="root">
       <div id="arranque">
-        <div id="arranque-logo">Fudi POS</div>
+        <div id="arranque-baldosa">
+          <svg id="arranque-marca" width="88" height="88" viewBox="0 0 100 100" fill="none" aria-hidden="true"><rect x="28.3" y="19" width="43.4" height="13.95" rx="6.98" fill="#fff"/><rect x="28.3" y="45.04" width="32.24" height="13.95" rx="6.98" fill="#fff"/><rect x="28.3" y="19" width="13.95" height="62" rx="6.98" fill="#fff"/><circle cx="64.03" cy="73.33" r="7.67" fill="#F59E0B"/></svg>
+        </div>
+        <div id="arranque-logo">Fudi</div>
         <div id="arranque-texto">Abriendo…</div>
+        <div id="arranque-puntos" aria-hidden="true"><i></i><i></i><i></i></div>
       </div>
     </div>
 
     <style>
+      /* La misma fuente que el resto de la app, declarada acá también para
+         que la pantalla de arranque no se dibuje con la del sistema. */
+      @font-face {
+        font-family: 'Outfit';
+        src: url('/fonts/Outfit-Variable.woff2') format('woff2');
+        font-weight: 300 800;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      /* Mismos colores y formas que el resto de la app. Va todo en línea
+         a propósito: esto se pinta antes de que cargue el CSS del bundle. */
       #arranque {
         position: fixed;
         inset: 0;
@@ -26,30 +42,71 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 12px;
         padding: 24px;
-        background: #f4f7f2;
-        color: #0e4d34;
-        font-family: system-ui, -apple-system, sans-serif;
+        background: #fdfbf7;
+        color: #1f2937;
+        font-family: 'Outfit', system-ui, -apple-system, sans-serif;
         text-align: center;
       }
-      #arranque-logo { font-size: 1.6rem; font-weight: 800; }
-      #arranque-texto { color: #7c8a83; font-size: 0.95rem; }
+      #arranque-baldosa {
+        width: 88px;
+        height: 88px;
+        border-radius: 25px;
+        background: #9b1b30;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 20px 40px -15px rgba(155, 27, 48, 0.4);
+      }
+      #arranque-logo {
+        margin-top: 28px;
+        font-size: 1.85rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      #arranque-texto {
+        margin-top: 8px;
+        color: #6b7280;
+        font-size: 0.9rem;
+        font-weight: 500;
+        max-width: 16rem;
+      }
+      #arranque-puntos {
+        display: flex;
+        gap: 8px;
+        margin-top: 28px;
+      }
+      #arranque-puntos i {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #f59e0b;
+        animation: arranque-punto 1s ease-in-out infinite;
+      }
+      #arranque-puntos i:nth-child(2) { animation-delay: 0.16s; }
+      #arranque-puntos i:nth-child(3) { animation-delay: 0.32s; }
+      @keyframes arranque-punto {
+        0%, 100% { opacity: 0.25; transform: translateY(0); }
+        50% { opacity: 1; transform: translateY(-4px); }
+      }
       #arranque-detalle {
-        max-width: 32rem;
-        font-size: 0.8rem;
-        color: #7c8a83;
+        margin-top: 10px;
+        max-width: 22rem;
+        font-size: 0.78rem;
+        color: #6b7280;
         opacity: 0.85;
         word-break: break-word;
         white-space: pre-wrap;
       }
       #arranque-boton {
-        margin-top: 8px;
-        padding: 12px 22px;
+        margin-top: 28px;
+        min-height: 52px;
+        padding: 0 32px;
         border: 0;
-        border-radius: 999px;
-        background: #0e4d34;
-        color: #fff;
+        border-radius: 16px;
+        background: #f59e0b;
+        color: #1f2937;
+        font-family: inherit;
         font-size: 1rem;
         font-weight: 700;
       }
@@ -68,8 +125,10 @@
           yaMostrado = true;
           var cont = document.getElementById('arranque');
           if (!cont) return;
+          var baldosa = cont.querySelector('#arranque-baldosa');
           cont.innerHTML =
-            '<div id="arranque-logo">Fudi POS</div>' +
+            (baldosa ? baldosa.outerHTML : '') +
+            '<div id="arranque-logo">Fudi</div>' +
             '<div id="arranque-texto">No se pudo abrir la app.</div>' +
             '<div id="arranque-detalle"></div>' +
             '<button id="arranque-boton">Reintentar</button>';

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Los mismos colores de la paleta de la app (src/styles/index.css). -->
+    <color name="fudi_fondo">#FDFBF7</color>
+    <color name="fudi_bordo">#9B1B30</color>
+</resources>
