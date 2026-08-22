@@ -44,9 +44,14 @@ rules_version = '2';
 //   - unidad: 'gr' | 'ml' | 'u'
 //   - stock: number (>=0)
 //   - stockMinimo: number (>=0)
-//   - precioEnvase: number (>=0)
-//   - contenidoEnvase: number (>=0)
+//   - stock y stockMinimo van SIEMPRE en la unidad base (gr / ml / u); lo
+//     que se elige al cargar (kg, g, l, ml, u) es solo la forma de escribirlo
+//   - precioEnvase: number (>=0) - precio pagado (por envase, o total)
+//   - contenidoEnvase: number (>=0) - cantidad comprada en unidad base
 //   - costoUnitario: number (>=0) - precioEnvase / contenidoEnvase
+//   - modoCompra: 'total' | 'envase' - cómo se cargó la compra
+//   - esPreparacion: bool - si sale de una receta en vez de comprarse
+//   - recetaId: string (opcional) - receta que lo produce
 //   - activo: bool
 //   - creadoEn / actualizadoEn: string ISO 8601
 //
@@ -66,6 +71,18 @@ rules_version = '2';
 //   - receta: list de mapas {insumoId, cantidad} (opcional, 100% opcional
 //     para poder vender un plato sin costear insumos)
 //   - activo: bool
+//   - creadoEn / actualizadoEn: string ISO 8601
+//
+// Collection: negocios/{negocioId}/recetas/{id}
+//   - nombre: string (1-80)
+//   - tipo: 'plato' | 'preparacion'
+//   - ingredientes: list de mapas {insumoId, cantidad} (cantidad en unidad
+//     base del insumo: gr, ml o u)
+//   - rinde: number (cuántas unidades salen del lote)
+//   - unidadRinde: 'gr' | 'ml' | 'u'
+//   - notas: string (0-300, opcional)
+//   - platoId / insumoId: string (opcional) - lo que generó esta receta
+//   - activa: bool
 //   - creadoEn / actualizadoEn: string ISO 8601
 //
 // Collection: negocios/{negocioId}/combos/{id}
@@ -288,7 +305,8 @@ service cloud.firestore {
         function isValidInsumo(data) {
           return hasOnlyAllowedFields(data, [
               'nombre', 'unidad', 'stock', 'stockMinimo', 'precioEnvase',
-              'contenidoEnvase', 'costoUnitario', 'activo', 'creadoEn', 'actualizadoEn'
+              'contenidoEnvase', 'costoUnitario', 'modoCompra', 'esPreparacion',
+              'recetaId', 'activo', 'creadoEn', 'actualizadoEn'
             ]) &&
             hasRequiredFields(data, ['nombre', 'unidad', 'stock', 'activo', 'creadoEn', 'actualizadoEn']) &&
             isValidString(data.nombre, 1, 60) &&
@@ -298,6 +316,9 @@ service cloud.firestore {
             (!('precioEnvase' in data) || isNonNegativeNumber(data.precioEnvase)) &&
             (!('contenidoEnvase' in data) || isNonNegativeNumber(data.contenidoEnvase)) &&
             (!('costoUnitario' in data) || isNonNegativeNumber(data.costoUnitario)) &&
+            (!('modoCompra' in data) || data.modoCompra in ['total', 'envase']) &&
+            (!('esPreparacion' in data) || data.esPreparacion is bool) &&
+            isValidOptionalString(data, 'recetaId', 1, 200) &&
             data.activo is bool &&
             isValidDateString(data.creadoEn) && isValidDateString(data.actualizadoEn);
         }
@@ -362,6 +383,41 @@ service cloud.firestore {
         allow read: if isMember(negocioId);
         allow create: if isMember(negocioId) && isValidPlato(request.resource.data);
         allow update: if isMember(negocioId) && isValidPlato(request.resource.data) && unchanged('creadoEn');
+        allow delete: if isMember(negocioId);
+      }
+
+      // -----------------------------------------------------------
+      // recetas/{id} — recetas de plato y preparaciones intermedias
+      // -----------------------------------------------------------
+
+      match /recetas/{id} {
+        // Igual que en platos: el lenguaje de reglas no puede iterar listas,
+        // así que de "ingredientes" solo se valida el tipo y el tamaño. La
+        // forma de cada línea ({insumoId, cantidad}) la respeta el cliente.
+        function isValidRecetaDoc(data) {
+          return hasOnlyAllowedFields(data, [
+              'nombre', 'tipo', 'ingredientes', 'rinde', 'unidadRinde', 'notas',
+              'platoId', 'insumoId', 'activa', 'creadoEn', 'actualizadoEn'
+            ]) &&
+            hasRequiredFields(data, [
+              'nombre', 'tipo', 'ingredientes', 'rinde', 'unidadRinde', 'activa',
+              'creadoEn', 'actualizadoEn'
+            ]) &&
+            isValidString(data.nombre, 1, 80) &&
+            data.tipo in ['plato', 'preparacion'] &&
+            data.ingredientes is list && data.ingredientes.size() <= 40 &&
+            isNonNegativeNumber(data.rinde) &&
+            data.unidadRinde in ['gr', 'ml', 'u'] &&
+            isValidOptionalString(data, 'notas', 0, 300) &&
+            isValidOptionalString(data, 'platoId', 1, 200) &&
+            isValidOptionalString(data, 'insumoId', 1, 200) &&
+            data.activa is bool &&
+            isValidDateString(data.creadoEn) && isValidDateString(data.actualizadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow create: if isMember(negocioId) && isValidRecetaDoc(request.resource.data);
+        allow update: if isMember(negocioId) && isValidRecetaDoc(request.resource.data) && unchanged('creadoEn');
         allow delete: if isMember(negocioId);
       }
 

@@ -10,6 +10,7 @@ export const ETIQUETAS_STORE = {
   insumos: 'Insumos',
   movimientosInsumo: 'Movimientos de stock',
   platos: 'Platos',
+  recetas: 'Recetas',
   combos: 'Combos',
   ventas: 'Ventas',
   clientes: 'Clientes',

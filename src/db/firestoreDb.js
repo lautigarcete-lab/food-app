@@ -12,6 +12,7 @@ export const NOMBRES_STORES = [
   'insumos',
   'movimientosInsumo',
   'platos',
+  'recetas',
   'combos',
   'ventas',
   'clientes',

@@ -3,6 +3,7 @@ import Header from '../components/Header.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import InsumoFormModal from './InsumoFormModal.jsx';
 import { listarInsumos, estaBajoStock, obtenerInsumo } from '../db/repositories/insumosRepo.js';
+import { formatearCantidad } from '../utils/unidades.js';
 import { IconMas2, IconAlerta } from '../components/icons.jsx';
 
 export default function InsumosPage({ onVolver }) {
@@ -84,7 +85,7 @@ export default function InsumosPage({ onVolver }) {
                       )}
                     </span>
                     <span className="insumo-row__stock">
-                      {insumo.stock} {insumo.unidad}
+                      {formatearCantidad(insumo.stock, insumo.unidad)}
                     </span>
                   </button>
                 </li>

@@ -13,7 +13,7 @@ const TABS_DER = [
 // Las sub-vistas (insumos, gastos, tareas, respaldo, cuenta) cuelgan de
 // "Más" y se muestran como activo el ícono "Más" para no confundir con
 // menús anidados.
-const GRUPO_MAS = new Set(['mas', 'insumos', 'gastos', 'tareas', 'respaldo', 'cuenta']);
+const GRUPO_MAS = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'respaldo', 'cuenta']);
 
 export default function BottomNav({ vistaActual, onCambiarVista }) {
   function activo(id) {

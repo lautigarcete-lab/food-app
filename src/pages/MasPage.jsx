@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import Header from '../components/Header.jsx';
 import CierreJornadaModal from './CierreJornadaModal.jsx';
-import { IconInsumos, IconGastos, IconTareas, IconRespaldo, IconCierre, IconCuenta } from '../components/icons.jsx';
+import { IconInsumos,
+  IconRecetas, IconGastos, IconTareas, IconRespaldo, IconCierre, IconCuenta } from '../components/icons.jsx';
 
 const OPCIONES = [
   { id: 'insumos', label: 'Insumos', descripcion: 'Stock, mínimos y mermas', Icon: IconInsumos },
+  { id: 'recetas', label: 'Recetas', descripcion: 'Costo por porción y crear platos', Icon: IconRecetas },
   { id: 'gastos', label: 'Gastos', descripcion: 'Registro de gastos del negocio', Icon: IconGastos },
   { id: 'cierre', label: 'Cierre de jornada', descripcion: 'Balance del día por medio de pago', Icon: IconCierre },
   { id: 'tareas', label: 'Organización', descripcion: 'Tareas y calendario de publicaciones', Icon: IconTareas },

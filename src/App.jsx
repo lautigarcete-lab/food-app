@@ -7,6 +7,7 @@ import CatalogoPage from './pages/CatalogoPage.jsx';
 import ClientesPage from './pages/ClientesPage.jsx';
 import MasPage from './pages/MasPage.jsx';
 import InsumosPage from './pages/InsumosPage.jsx';
+import RecetasPage from './pages/RecetasPage.jsx';
 import GastosPage from './pages/GastosPage.jsx';
 import TareasPage from './pages/TareasPage.jsx';
 import RespaldoPage from './pages/RespaldoPage.jsx';
@@ -33,6 +34,7 @@ function AppPrincipal() {
         {vista === 'clientes' && <ClientesPage />}
         {vista === 'mas' && <MasPage onIr={setVista} />}
         {vista === 'insumos' && <InsumosPage onVolver={volverAMas} />}
+        {vista === 'recetas' && <RecetasPage onVolver={volverAMas} />}
         {vista === 'gastos' && <GastosPage onVolver={volverAMas} />}
         {vista === 'tareas' && <TareasPage onVolver={volverAMas} />}
         {vista === 'respaldo' && <RespaldoPage onVolver={volverAMas} />}

@@ -2023,3 +2023,77 @@ h3 {
 .negocio-row__info small {
   color: var(--color-texto-suave);
 }
+
+/* ------------------------------------------------------------------ */
+/* Cantidad + unidad (insumos y recetas)                               */
+/* ------------------------------------------------------------------ */
+
+.campo-con-unidad {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.campo-con-unidad input {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-con-unidad select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 78px;
+  padding: 0 10px;
+}
+
+.unidad-fija {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: var(--radio-chico);
+  background: var(--color-borde);
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* La línea de receta lleva insumo + cantidad + unidad + quitar */
+.linea-receta select:first-child {
+  flex: 2;
+  min-width: 0;
+}
+
+.linea-receta select:nth-of-type(2) {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 68px;
+  min-height: 44px;
+  border-radius: var(--radio-chico);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+}
+
+.bloque-precio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radio);
+  background: var(--color-primario-suave);
+}
+
+.bloque-precio h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-primario-oscuro);
+}
+
+.bloque-precio .chips {
+  margin: 0;
+  padding: 0;
+}
+
+.costo-calculado small.texto-negativo {
+  color: var(--color-alerta);
+}

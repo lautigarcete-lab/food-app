@@ -4,11 +4,12 @@ import { generarId } from '../../utils/id';
 const STORE = 'insumos';
 const STORE_MOVIMIENTOS = 'movimientosInsumo';
 
-// Gramos, mililitros o unidades: alcanza para pesar/medir cualquier insumo
-// de un puesto de comida sin marear con opciones de más.
+// El stock y las recetas se guardan siempre en la unidad base (gramos,
+// mililitros o unidades). Lo que se elige al cargar (kg, g, l, ml, u) es
+// solo la forma cómoda de escribirlo; ver src/utils/unidades.js.
 export const UNIDADES = [
-  { id: 'gr', label: 'Gramos (gr)' },
-  { id: 'ml', label: 'Mililitros (ml)' },
+  { id: 'gr', label: 'Peso (kg/g)' },
+  { id: 'ml', label: 'Volumen (l/ml)' },
   { id: 'u', label: 'Unidades (u)' },
 ];
 
@@ -22,31 +23,46 @@ export function obtenerInsumo(id) {
   return getById(STORE, id);
 }
 
-// El costo unitario se deriva del precio del envase y de cuánto contiene,
-// en vez de pedirlo directamente: así el cálculo de $/gr, $/ml o $/u es
-// automático y no depende de que alguien lo haga a mano.
-export function calcularCostoUnitario(precioEnvase, contenidoEnvase) {
-  const precio = Number(precioEnvase) || 0;
-  const contenido = Number(contenidoEnvase) || 0;
-  if (precio <= 0 || contenido <= 0) return 0;
-  return precio / contenido;
+// El costo unitario se deriva de lo que se pagó y de cuánto se compró, en
+// vez de pedirlo directamente: así el $/gr, $/ml o $/u sale automático y no
+// depende de que alguien haga la división a mano.
+export function calcularCostoUnitario(precioTotal, cantidadBase) {
+  const precio = Number(precioTotal) || 0;
+  const cantidad = Number(cantidadBase) || 0;
+  if (precio <= 0 || cantidad <= 0) return 0;
+  return precio / cantidad;
 }
 
-export async function crearInsumo({ nombre, unidad, stock, stockMinimo, precioEnvase, contenidoEnvase }) {
+export async function crearInsumo({
+  nombre,
+  unidad,
+  stock,
+  stockMinimo,
+  precioEnvase,
+  contenidoEnvase,
+  costoUnitario,
+  modoCompra,
+  esPreparacion,
+  recetaId,
+}) {
   const ahora = new Date().toISOString();
   const insumo = {
     id: generarId(),
     nombre: nombre.trim(),
-    unidad: unidad || 'unidad',
+    unidad: unidad || 'u',
+    // stock y stockMinimo van siempre en la unidad base del insumo.
     stock: Number(stock) || 0,
     stockMinimo: Number(stockMinimo) || 0,
     precioEnvase: Number(precioEnvase) || 0,
     contenidoEnvase: Number(contenidoEnvase) || 0,
-    costoUnitario: calcularCostoUnitario(precioEnvase, contenidoEnvase),
+    costoUnitario: Number(costoUnitario) || 0,
+    modoCompra: modoCompra === 'envase' ? 'envase' : 'total',
+    esPreparacion: Boolean(esPreparacion),
     activo: true,
     creadoEn: ahora,
     actualizadoEn: ahora,
   };
+  if (recetaId) insumo.recetaId = recetaId;
   return put(STORE, insumo);
 }
 
@@ -54,10 +70,6 @@ export async function actualizarInsumo(id, cambios) {
   const actual = await obtenerInsumo(id);
   if (!actual) throw new Error('Insumo no encontrado.');
   const combinado = { ...actual, ...cambios };
-  // Si cambió el precio o el contenido del envase, se recalcula el costo unitario.
-  if (cambios.precioEnvase !== undefined || cambios.contenidoEnvase !== undefined) {
-    combinado.costoUnitario = calcularCostoUnitario(combinado.precioEnvase, combinado.contenidoEnvase);
-  }
   const actualizado = { ...combinado, actualizadoEn: new Date().toISOString() };
   return put(STORE, actualizado);
 }

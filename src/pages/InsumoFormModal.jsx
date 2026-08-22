@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from '../components/Modal.jsx';
 import {
   UNIDADES,
@@ -10,6 +10,13 @@ import {
   calcularCostoUnitario,
 } from '../db/repositories/insumosRepo.js';
 import { formatMoney, toNumber } from '../utils/money.js';
+import {
+  aBase,
+  desdeBase,
+  formatearCantidad,
+  opcionesDe,
+  unidadDeCosto,
+} from '../utils/unidades.js';
 
 const ETIQUETA_MOVIMIENTO = {
   compra: 'Ingreso de stock',
@@ -18,31 +25,99 @@ const ETIQUETA_MOVIMIENTO = {
   venta: 'Descuento por venta',
 };
 
+// Al editar, muestra la cantidad guardada en la unidad más cómoda: 2000
+// gramos se ven como "2 kg" y no como "2000 g".
+function unidadPreferida(cantidadBase, base) {
+  if (base === 'gr') return Math.abs(cantidadBase) >= 1000 ? 'kg' : 'gr';
+  if (base === 'ml') return Math.abs(cantidadBase) >= 1000 ? 'l' : 'ml';
+  return 'u';
+}
+
 export default function InsumoFormModal({ insumo, onClose, onGuardado, onEliminado }) {
   const esEdicion = Boolean(insumo);
+  const baseInicial = insumo?.unidad || 'gr';
 
   const [nombre, setNombre] = useState(insumo?.nombre || '');
-  const [unidad, setUnidad] = useState(insumo?.unidad || 'gr');
-  const [stockInicial, setStockInicial] = useState(insumo ? String(insumo.stock) : '0');
-  const [stockMinimo, setStockMinimo] = useState(insumo ? String(insumo.stockMinimo) : '0');
+  const [base, setBase] = useState(baseInicial);
+  const [modo, setModo] = useState(insumo?.modoCompra === 'envase' ? 'envase' : 'total');
+
+  // Modo "cantidad + precio total"
+  const [cantidadComprada, setCantidadComprada] = useState(
+    insumo ? String(desdeBase(insumo.contenidoEnvase, unidadPreferida(insumo.contenidoEnvase, baseInicial))) : ''
+  );
+  const [unidadCantidad, setUnidadCantidad] = useState(
+    insumo ? unidadPreferida(insumo.contenidoEnvase, baseInicial) : 'gr'
+  );
+  const [precioTotal, setPrecioTotal] = useState(insumo ? String(insumo.precioEnvase || '') : '');
+
+  // Modo "por envase"
+  const [cantEnvases, setCantEnvases] = useState('1');
+  const [contenidoEnvase, setContenidoEnvase] = useState(
+    insumo ? String(desdeBase(insumo.contenidoEnvase, unidadPreferida(insumo.contenidoEnvase, baseInicial))) : ''
+  );
+  const [unidadEnvase, setUnidadEnvase] = useState(
+    insumo ? unidadPreferida(insumo.contenidoEnvase, baseInicial) : 'gr'
+  );
   const [precioEnvase, setPrecioEnvase] = useState(insumo ? String(insumo.precioEnvase || '') : '');
-  const [contenidoEnvase, setContenidoEnvase] = useState(insumo ? String(insumo.contenidoEnvase || '') : '');
+
+  const [stockMinimo, setStockMinimo] = useState(
+    insumo ? String(desdeBase(insumo.stockMinimo, unidadPreferida(insumo.stockMinimo, baseInicial))) : '0'
+  );
+  const [unidadMinimo, setUnidadMinimo] = useState(
+    insumo ? unidadPreferida(insumo.stockMinimo, baseInicial) : 'gr'
+  );
+
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
 
   const [movimientos, setMovimientos] = useState([]);
   const [tipoAjuste, setTipoAjuste] = useState(null); // 'compra' | 'merma' | null
   const [cantidadAjuste, setCantidadAjuste] = useState('');
+  const [unidadAjuste, setUnidadAjuste] = useState(baseInicial === 'u' ? 'u' : baseInicial);
   const [motivoAjuste, setMotivoAjuste] = useState('');
   const [ajustando, setAjustando] = useState(false);
 
+  const opciones = opcionesDe(base);
+
   useEffect(() => {
-    if (esEdicion) {
-      listarMovimientos(insumo.id).then(setMovimientos).catch(() => {});
-    }
+    if (esEdicion) listarMovimientos(insumo.id).then(setMovimientos).catch(() => {});
   }, [esEdicion, insumo]);
 
-  const costoUnitarioCalculado = calcularCostoUnitario(toNumber(precioEnvase), toNumber(contenidoEnvase));
+  // Al cambiar de familia de unidad hay que reencauzar los selectores: no
+  // tiene sentido quedar en "kg" si el insumo pasó a medirse en litros.
+  function cambiarBase(nuevaBase) {
+    setBase(nuevaBase);
+    const primera = opcionesDe(nuevaBase)[0].id;
+    setUnidadCantidad(primera);
+    setUnidadEnvase(primera);
+    setUnidadMinimo(primera);
+    setUnidadAjuste(primera);
+  }
+
+  // Todo lo que se escribe se pasa a la unidad base antes de calcular.
+  const calculo = useMemo(() => {
+    if (modo === 'envase') {
+      const contenidoBase = aBase(toNumber(contenidoEnvase), unidadEnvase);
+      const envases = toNumber(cantEnvases) || 0;
+      return {
+        cantidadBase: contenidoBase * envases,
+        precioGuardado: toNumber(precioEnvase),
+        contenidoGuardado: contenidoBase,
+        costoUnitario: calcularCostoUnitario(toNumber(precioEnvase), contenidoBase),
+        gastoTotal: toNumber(precioEnvase) * envases,
+      };
+    }
+    const cantidadBase = aBase(toNumber(cantidadComprada), unidadCantidad);
+    return {
+      cantidadBase,
+      precioGuardado: toNumber(precioTotal),
+      contenidoGuardado: cantidadBase,
+      costoUnitario: calcularCostoUnitario(toNumber(precioTotal), cantidadBase),
+      gastoTotal: toNumber(precioTotal),
+    };
+  }, [modo, cantidadComprada, unidadCantidad, precioTotal, cantEnvases, contenidoEnvase, unidadEnvase, precioEnvase]);
+
+  const costoMostrado = unidadDeCosto(base);
 
   async function handleGuardar(e) {
     e.preventDefault();
@@ -53,23 +128,21 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
     setGuardando(true);
     setError('');
     try {
+      const comunes = {
+        nombre,
+        unidad: base,
+        stockMinimo: aBase(toNumber(stockMinimo), unidadMinimo),
+        precioEnvase: calculo.precioGuardado,
+        contenidoEnvase: calculo.contenidoGuardado,
+        costoUnitario: calculo.costoUnitario,
+        modoCompra: modo,
+      };
       if (esEdicion) {
-        await actualizarInsumo(insumo.id, {
-          nombre,
-          unidad,
-          stockMinimo: toNumber(stockMinimo),
-          precioEnvase: toNumber(precioEnvase),
-          contenidoEnvase: toNumber(contenidoEnvase),
-        });
+        // Editar los datos de compra actualiza el costo, no el stock: el
+        // stock se mueve solo desde "Ajustar stock", que deja movimiento.
+        await actualizarInsumo(insumo.id, comunes);
       } else {
-        await crearInsumo({
-          nombre,
-          unidad,
-          stock: toNumber(stockInicial),
-          stockMinimo: toNumber(stockMinimo),
-          precioEnvase: toNumber(precioEnvase),
-          contenidoEnvase: toNumber(contenidoEnvase),
-        });
+        await crearInsumo({ ...comunes, stock: calculo.cantidadBase });
       }
       onGuardado();
     } catch (err) {
@@ -86,7 +159,7 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
   }
 
   async function handleConfirmarAjuste() {
-    const cantidad = toNumber(cantidadAjuste);
+    const cantidad = aBase(toNumber(cantidadAjuste), unidadAjuste);
     if (cantidad <= 0) {
       setError('Ingresá una cantidad mayor a cero.');
       return;
@@ -112,6 +185,14 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
     }
   }
 
+  const selectorUnidad = (valor, onChange) => (
+    <select value={valor} onChange={(e) => onChange(e.target.value)} aria-label="Unidad">
+      {opciones.map((u) => (
+        <option key={u.id} value={u.id}>{u.label}</option>
+      ))}
+    </select>
+  );
+
   return (
     <Modal titulo={esEdicion ? 'Editar insumo' : 'Nuevo insumo'} onClose={onClose}>
       <form className="form" onSubmit={handleGuardar}>
@@ -120,20 +201,20 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
           <input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            placeholder="Ej: Azúcar mascabo, Pan brioche, Queso cheddar"
+            placeholder="Ej: Carne picada, Aceite, Pan brioche"
             autoFocus
           />
         </label>
 
         <div>
-          <span className="etiqueta-grupo">Unidad de medida</span>
+          <span className="etiqueta-grupo">¿Cómo se mide?</span>
           <div className="opciones-pago">
             {UNIDADES.map((u) => (
               <button
                 key={u.id}
                 type="button"
-                className={`opcion-pago${unidad === u.id ? ' is-active' : ''}`}
-                onClick={() => setUnidad(u.id)}
+                className={`opcion-pago${base === u.id ? ' is-active' : ''}`}
+                onClick={() => cambiarBase(u.id)}
               >
                 {u.label}
               </button>
@@ -141,64 +222,117 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
           </div>
         </div>
 
-        <div className="campo-fila">
-          {!esEdicion && (
+        <div>
+          <span className="etiqueta-grupo">¿Cómo lo comprás?</span>
+          <div className="segmentado">
+            <button type="button" className={modo === 'total' ? 'is-active' : ''} onClick={() => setModo('total')}>
+              Cantidad y precio
+            </button>
+            <button type="button" className={modo === 'envase' ? 'is-active' : ''} onClick={() => setModo('envase')}>
+              Por envase
+            </button>
+          </div>
+        </div>
+
+        {modo === 'total' ? (
+          <>
+            <div className="campo-fila">
+              <label className="campo">
+                <span>¿Cuánto compraste?</span>
+                <div className="campo-con-unidad">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={cantidadComprada}
+                    onChange={(e) => setCantidadComprada(e.target.value)}
+                    placeholder="0"
+                  />
+                  {selectorUnidad(unidadCantidad, setUnidadCantidad)}
+                </div>
+              </label>
+            </div>
             <label className="campo">
-              <span>Stock de envases/paquetes</span>
+              <span>¿Cuánto pagaste en total? ($)</span>
               <input
                 type="number"
                 inputMode="decimal"
-                value={stockInicial}
-                onChange={(e) => setStockInicial(e.target.value)}
+                value={precioTotal}
+                onChange={(e) => setPrecioTotal(e.target.value)}
+                placeholder="$ 0"
               />
             </label>
+          </>
+        ) : (
+          <>
+            <div className="campo-fila">
+              <label className="campo">
+                <span>¿Cuántos envases?</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={cantEnvases}
+                  onChange={(e) => setCantEnvases(e.target.value)}
+                  placeholder="1"
+                />
+              </label>
+              <label className="campo">
+                <span>Precio de cada envase ($)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={precioEnvase}
+                  onChange={(e) => setPrecioEnvase(e.target.value)}
+                  placeholder="$ 0"
+                />
+              </label>
+            </div>
+            <label className="campo">
+              <span>¿Cuánto trae cada envase?</span>
+              <div className="campo-con-unidad">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={contenidoEnvase}
+                  onChange={(e) => setContenidoEnvase(e.target.value)}
+                  placeholder="0"
+                />
+                {selectorUnidad(unidadEnvase, setUnidadEnvase)}
+              </div>
+            </label>
+          </>
+        )}
+
+        <div className="costo-calculado">
+          <small>Costo</small>
+          <strong>
+            {calculo.costoUnitario > 0
+              ? `${formatMoney(calculo.costoUnitario * costoMostrado.factor)} por ${costoMostrado.etiqueta}`
+              : '— completá cantidad y precio —'}
+          </strong>
+          {calculo.cantidadBase > 0 && !esEdicion && (
+            <small>
+              Entra al stock: {formatearCantidad(calculo.cantidadBase, base)} · gastaste{' '}
+              {formatMoney(calculo.gastoTotal)}
+            </small>
           )}
-          <label className="campo">
-            <span>Stock mínimo (alerta)</span>
+        </div>
+
+        <label className="campo">
+          <span>Avisarme cuando queden menos de</span>
+          <div className="campo-con-unidad">
             <input
               type="number"
               inputMode="decimal"
               value={stockMinimo}
               onChange={(e) => setStockMinimo(e.target.value)}
             />
-          </label>
-        </div>
-
-        <div className="campo-fila">
-          <label className="campo">
-            <span>Precio del envase cerrado ($)</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={precioEnvase}
-              onChange={(e) => setPrecioEnvase(e.target.value)}
-              placeholder="$ 0"
-            />
-          </label>
-          <label className="campo">
-            <span>Contenido del envase ({unidad})</span>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={contenidoEnvase}
-              onChange={(e) => setContenidoEnvase(e.target.value)}
-              placeholder="0"
-            />
-          </label>
-        </div>
-
-        <div className="costo-calculado">
-          <small>Costo unitario calculado</small>
-          <strong>
-            {costoUnitarioCalculado > 0
-              ? `${formatMoney(costoUnitarioCalculado)} / ${unidad}`
-              : '— cargá precio y contenido —'}
-          </strong>
-        </div>
+            {selectorUnidad(unidadMinimo, setUnidadMinimo)}
+          </div>
+        </label>
 
         {esEdicion && (
           <div className="stock-actual">
-            Stock actual: <strong>{insumo.stock} envases ({insumo.unidad})</strong>
+            Stock actual: <strong>{formatearCantidad(insumo.stock, insumo.unidad)}</strong>
           </div>
         )}
 
@@ -224,14 +358,17 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
           ) : (
             <div className="form">
               <label className="campo">
-                <span>Cantidad ({insumo.unidad})</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  autoFocus
-                  value={cantidadAjuste}
-                  onChange={(e) => setCantidadAjuste(e.target.value)}
-                />
+                <span>Cantidad</span>
+                <div className="campo-con-unidad">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    autoFocus
+                    value={cantidadAjuste}
+                    onChange={(e) => setCantidadAjuste(e.target.value)}
+                  />
+                  {selectorUnidad(unidadAjuste, setUnidadAjuste)}
+                </div>
               </label>
               <label className="campo">
                 <span>Motivo {tipoAjuste === 'merma' ? '(obligatorio)' : '(opcional)'}</span>
@@ -259,16 +396,13 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
                 <div key={m.id} className="movimiento-item">
                   <span>{ETIQUETA_MOVIMIENTO[m.tipo] || m.tipo}</span>
                   <span className={m.delta < 0 ? 'texto-negativo' : 'texto-positivo'}>
-                    {m.delta > 0 ? '+' : ''}{m.delta} {insumo.unidad}
+                    {m.delta > 0 ? '+' : '−'}
+                    {formatearCantidad(Math.abs(m.delta), insumo.unidad)}
                   </span>
                   {m.motivo && <small>{m.motivo}</small>}
                 </div>
               ))}
             </div>
-          )}
-
-          {insumo.costoUnitario > 0 && (
-            <p className="ayuda-texto">Costo unitario actual: {formatMoney(insumo.costoUnitario)}</p>
           )}
 
           <button type="button" className="btn btn--texto-peligro" onClick={handleEliminar}>

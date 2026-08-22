@@ -109,6 +109,15 @@ export function IconInsumos(props) {
   );
 }
 
+export function IconRecetas(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5V5.5Z" />
+      <path d="M9 8h6M9 12h4" />
+    </svg>
+  );
+}
+
 export function IconGastos(props) {
   return (
     <svg {...base} {...props}>
