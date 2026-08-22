@@ -22,12 +22,14 @@ export function IconInicio(props) {
 }
 
 export function IconVender(props) {
+  // Bolsita de compras. La versión anterior se leía como un tacho de basura
+  // porque tenía una línea horizontal cruzando todo el ancho (parecía la
+  // tapa) y otra adentro. Esta es solo el cuerpo de la bolsa con el asa
+  // asomando por arriba, que es lo que la hace reconocible.
   return (
-    <svg {...base} {...props}>
-      <path d="M3 6h18" />
-      <path d="M6 6V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2" />
-      <path d="M4 6l1.2 13.2A2 2 0 0 0 7.2 21h9.6a2 2 0 0 0 2-1.8L20 6" />
-      <path d="M9 11h6" />
+    <svg {...base} strokeWidth={2.2} {...props}>
+      <path d="M5.2 7.8h13.6l-1 11a2.2 2.2 0 0 1-2.2 2H8.4a2.2 2.2 0 0 1-2.2-2l-1-11Z" />
+      <path d="M9 10.5V6.9a3 3 0 0 1 6 0v3.6" />
     </svg>
   );
 }

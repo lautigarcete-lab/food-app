@@ -72,7 +72,8 @@ export default function GastosPage({ onVolver }) {
 
   return (
     <div className="page">
-      <Header titulo="Gastos" onVolver={onVolver} />
+      <Header titulo="Gastos"
+        subtitulo="Lo que sale de la caja" onVolver={onVolver} />
       <div className="page__content">
         <div className="chips">
           {PERIODOS.map((p) => (
@@ -95,7 +96,7 @@ export default function GastosPage({ onVolver }) {
         {cargando ? (
           <p className="ayuda-texto">Cargando…</p>
         ) : gastos.length === 0 ? (
-          <EmptyState emoji="💸" titulo="No hay gastos en este período" />
+          <EmptyState titulo="No hay gastos en este período" />
         ) : (
           <ul className="lista-gastos">
             {gastos.map((gasto) => {

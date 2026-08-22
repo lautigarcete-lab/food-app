@@ -37,7 +37,8 @@ export default function RecetasPage({ onVolver }) {
 
   return (
     <div className="page">
-      <Header titulo="Recetas" onVolver={onVolver} />
+      <Header titulo="Recetas"
+        subtitulo="Cuánto cuesta y cuánto rinde" onVolver={onVolver} />
       <div className="page__content">
         <p className="ayuda-texto">
           Cargá los insumos que lleva cada receta y cuánto rinde: Fudi calcula lo que sale cada
@@ -48,7 +49,6 @@ export default function RecetasPage({ onVolver }) {
           <p className="ayuda-texto">Cargando…</p>
         ) : recetas.length === 0 ? (
           <EmptyState
-            emoji="📖"
             titulo="Todavía no cargaste recetas"
             descripcion="Una receta te dice cuánto te cuesta hacer cada plato y a cuánto conviene venderlo."
           />

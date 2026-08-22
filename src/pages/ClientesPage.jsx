@@ -68,7 +68,8 @@ export default function ClientesPage() {
 
   return (
     <div className="page">
-      <Header titulo="Clientes" />
+      <Header titulo="Clientes"
+        subtitulo="Fiados, pagos y cuentas" />
       <div className="page__content">
         {deudaTotal > 0 && (
           <div className="banner-deuda">
@@ -97,7 +98,6 @@ export default function ClientesPage() {
           <p className="ayuda-texto">Cargando…</p>
         ) : visibles.length === 0 ? (
           <EmptyState
-            emoji={filtro === 'todos' ? '👥' : '👌'}
             titulo={
               filtro === 'deben'
                 ? 'Nadie te debe plata'

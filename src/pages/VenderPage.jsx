@@ -108,6 +108,7 @@ export default function VenderPage() {
     <div className="page">
       <Header
         titulo="Vender"
+        subtitulo="Tocá para armar el pedido"
         accion={
           <div className="header-acciones">
             <button
@@ -127,7 +128,6 @@ export default function VenderPage() {
           <p className="ayuda-texto">Cargando…</p>
         ) : sinCatalogo ? (
           <EmptyState
-            emoji="🍽️"
             titulo="Primero cargá tu menú"
             descripcion="Andá a Catálogo y creá tus platos. Después vas a poder venderlos de un toque desde acá."
           />
@@ -163,7 +163,7 @@ export default function VenderPage() {
             </div>
 
             {tarjetas.length === 0 ? (
-              <EmptyState emoji="🔍" titulo="No hay nada en esta categoría" />
+              <EmptyState titulo="No hay nada en esta categoría" />
             ) : (
               <div className="grid-venta">
                 {tarjetas.map((tarjeta) => {

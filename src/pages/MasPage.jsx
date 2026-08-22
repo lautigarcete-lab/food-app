@@ -5,13 +5,13 @@ import { IconInsumos,
   IconRecetas, IconGastos, IconTareas, IconRespaldo, IconCierre, IconCuenta } from '../components/icons.jsx';
 
 const OPCIONES = [
-  { id: 'insumos', label: 'Insumos', descripcion: 'Stock, mínimos y mermas', Icon: IconInsumos },
-  { id: 'recetas', label: 'Recetas', descripcion: 'Costo por porción y crear platos', Icon: IconRecetas },
-  { id: 'gastos', label: 'Gastos', descripcion: 'Registro de gastos del negocio', Icon: IconGastos },
-  { id: 'cierre', label: 'Cierre de jornada', descripcion: 'Balance del día por medio de pago', Icon: IconCierre },
-  { id: 'tareas', label: 'Organización', descripcion: 'Tareas y calendario de publicaciones', Icon: IconTareas },
-  { id: 'respaldo', label: 'Respaldo', descripcion: 'Guardar y restaurar todos tus datos', Icon: IconRespaldo },
-  { id: 'cuenta', label: 'Cuenta', descripcion: 'Negocio, equipo y sesión', Icon: IconCuenta },
+  { id: 'insumos', label: 'Insumos', descripcion: 'Stock, mínimos y mermas', Icon: IconInsumos, tono: 'tono-verde' },
+  { id: 'recetas', label: 'Recetas', descripcion: 'Costo por porción y crear platos', Icon: IconRecetas, tono: 'tono-dorado' },
+  { id: 'gastos', label: 'Gastos', descripcion: 'Registro de gastos del negocio', Icon: IconGastos, tono: 'tono-rojo' },
+  { id: 'cierre', label: 'Cierre de jornada', descripcion: 'Balance del día por medio de pago', Icon: IconCierre, tono: 'tono-dorado' },
+  { id: 'tareas', label: 'Organización', descripcion: 'Tareas y calendario de publicaciones', Icon: IconTareas, tono: 'tono-verde' },
+  { id: 'respaldo', label: 'Respaldo', descripcion: 'Guardar y restaurar todos tus datos', Icon: IconRespaldo, tono: 'tono-verde' },
+  { id: 'cuenta', label: 'Cuenta', descripcion: 'Negocio, equipo y sesión', Icon: IconCuenta, tono: 'tono-dorado' },
 ];
 
 export default function MasPage({ onIr }) {
@@ -27,12 +27,12 @@ export default function MasPage({ onIr }) {
 
   return (
     <div className="page">
-      <Header titulo="Más" />
+      <Header titulo="Más" subtitulo="Todo lo que no entra en el día a día" />
       <div className="page__content">
         <div className="lista-opciones">
-          {OPCIONES.map(({ id, label, descripcion, Icon }) => (
+          {OPCIONES.map(({ id, label, descripcion, Icon, tono }) => (
             <button key={id} type="button" className="opcion-card" onClick={() => handleClick(id)}>
-              <span className="opcion-card__icono">
+              <span className={`opcion-card__icono ${tono}`}>
                 <Icon width={26} height={26} />
               </span>
               <span className="opcion-card__texto">

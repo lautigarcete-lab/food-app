@@ -47,15 +47,20 @@
 /* ------------------------------------------------------------------ */
 
 :root {
-  --color-fondo: #f4f7f2;
+  /* Paleta tomada de la mascota: la miga clara del pan como fondo, el
+     verde de la lechuga como color principal, el dorado del queso como
+     acento y el marrón del medallón para el texto sobre ese dorado.
+     Antes el acento era un verde lima que no existe en la hamburguesa. */
+  --color-fondo: #faf6ee;
   --color-superficie: #ffffff;
-  --color-texto: #1b1f1d;
-  --color-texto-suave: #7c8a83;
-  --color-borde: #e6ebe6;
+  --color-texto: #241a12;
+  --color-texto-suave: #8c8175;
+  --color-borde: #ece3d6;
   --color-marca: #0e4d34;
   --color-marca-claro: #14603f;
-  --color-acento: #c6f24e;
-  --color-acento-texto: #0e3b28;
+  --color-acento: #f5a623;
+  --color-acento-texto: #4a2a16;
+  --color-acento-suave: #fdeccb;
   --color-primario: #0e4d34;
   --color-primario-oscuro: #0a3a27;
   --color-primario-suave: #dff3e4;
@@ -159,15 +164,23 @@ h3 {
   z-index: 5;
 }
 
-.app-header h1 {
+.app-header__titulo {
   flex: 1;
-  text-align: center;
-  font-size: 1.15rem;
-  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.app-header__spacer {
-  width: 40px;
+.app-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.app-header__titulo small {
+  color: var(--color-texto-suave);
+  font-size: 0.8rem;
 }
 
 .header-acciones {
@@ -233,7 +246,7 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 18px rgba(198, 242, 78, 0.5);
+  box-shadow: 0 8px 18px rgba(245, 166, 35, 0.45);
   transform: translateY(-12px);
 }
 
@@ -494,14 +507,12 @@ h3 {
 /* ------------------------------------------------------------------ */
 
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 48px 20px;
+  padding: 36px 20px;
   color: var(--color-texto-suave);
-}
-
-.empty-state__emoji {
-  font-size: 2.6rem;
-  margin-bottom: 10px;
 }
 
 .empty-state__titulo {
@@ -538,15 +549,31 @@ h3 {
 }
 
 .opcion-card__icono {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   background: var(--color-primario-suave);
   color: var(--color-primario-oscuro);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* Tonos para diferenciar de un vistazo cada sección */
+.tono-dorado {
+  background: var(--color-acento-suave);
+  color: #8a5a12;
+}
+
+.tono-rojo {
+  background: var(--color-alerta-suave);
+  color: var(--color-alerta);
+}
+
+.tono-verde {
+  background: var(--color-primario-suave);
+  color: var(--color-primario-oscuro);
 }
 
 .opcion-card__texto {
@@ -1409,9 +1436,9 @@ h3 {
 }
 
 .acceso-rapido__icono {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
   background: var(--color-superficie);
   box-shadow: var(--sombra);
   display: flex;
@@ -1509,8 +1536,20 @@ h3 {
 }
 
 .titulo-seccion {
-  font-size: 0.95rem;
-  margin: 18px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  margin: 20px 0 12px;
+}
+
+.titulo-seccion::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-acento);
+  flex-shrink: 0;
 }
 
 .aviso-accion {

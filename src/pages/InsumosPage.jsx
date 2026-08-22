@@ -42,7 +42,8 @@ export default function InsumosPage({ onVolver }) {
 
   return (
     <div className="page">
-      <Header titulo="Insumos" onVolver={onVolver} />
+      <Header titulo="Insumos"
+        subtitulo="Stock, costos y mermas" onVolver={onVolver} />
       <div className="page__content">
         <div className="segmentado">
           <button
@@ -65,7 +66,6 @@ export default function InsumosPage({ onVolver }) {
           <p className="ayuda-texto">Cargando…</p>
         ) : visibles.length === 0 ? (
           <EmptyState
-            emoji="🧺"
             titulo={filtro === 'bajoStock' ? 'Ningún insumo está bajo de stock' : 'Todavía no cargaste insumos'}
             descripcion={filtro === 'bajoStock' ? '' : 'Agregá tu materia prima para poder armar recetas y controlar el stock.'}
           />

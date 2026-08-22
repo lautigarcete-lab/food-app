@@ -107,7 +107,6 @@ function Tareas() {
         <p className="ayuda-texto">Cargando…</p>
       ) : tareas.length === 0 ? (
         <EmptyState
-          emoji="🗒️"
           titulo="No tenés tareas anotadas"
           descripcion="Anotá lo que no querés olvidarte: publicar la promo del viernes, llamar al proveedor, etc."
         />

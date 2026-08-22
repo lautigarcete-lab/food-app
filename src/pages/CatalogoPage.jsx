@@ -53,7 +53,8 @@ export default function CatalogoPage() {
 
   return (
     <div className="page">
-      <Header titulo="Catálogo" />
+      <Header titulo="Catálogo"
+        subtitulo="Lo que vendés: platos y combos" />
       <div className="page__content">
         <div className="segmentado">
           <button type="button" className={tab === 'platos' ? 'is-active' : ''} onClick={() => setTab('platos')}>
@@ -69,7 +70,6 @@ export default function CatalogoPage() {
         ) : tab === 'platos' ? (
           platos.length === 0 ? (
             <EmptyState
-              emoji="🍽️"
               titulo="Todavía no cargaste platos"
               descripcion="Creá tu primer plato: nombre, precio y opcionalmente la receta de insumos que consume."
             />
@@ -93,7 +93,6 @@ export default function CatalogoPage() {
           )
         ) : combos.length === 0 ? (
           <EmptyState
-            emoji="🎁"
             titulo="Todavía no armaste combos"
             descripcion="Combiná platos existentes con un precio especial de promo."
           />
