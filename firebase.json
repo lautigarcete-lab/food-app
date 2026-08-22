@@ -7,7 +7,11 @@
   "auth": {
     "authorizedDomains": ["localhost"],
     "providers": {
-      "emailPassword": true
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Fudi POS",
+        "supportEmail": "garcete1959@gmail.com"
+      }
     }
   }
 }

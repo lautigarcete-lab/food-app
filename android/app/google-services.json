@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "643632033370",
+    "project_id": "fudi-app-5013f",
+    "storage_bucket": "fudi-app-5013f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:643632033370:android:4b2aab0dde0034ae5ab263",
+        "android_client_info": {
+          "package_name": "com.foodtruck.pos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "643632033370-eduvb8l5eamhoj0bal6f4ilh5dnvff3t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.foodtruck.pos",
+            "certificate_hash": "0b4de35cab10df2e0bf96f7a6aa93200a3a76032"
+          }
+        },
+        {
+          "client_id": "643632033370-euhf2uv3363ifc9vnd50076h4jb07qip.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5SMAvuaUH7t_yQ1KtTcfP4wAZ6sqdPuE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "643632033370-euhf2uv3363ifc9vnd50076h4jb07qip.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
