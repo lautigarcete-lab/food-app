@@ -9,7 +9,17 @@
 //
 // Nota: el proyecto no usa Tailwind, así que el contenedor va con estilos
 // propios en vez de clases utilitarias.
-export default function BurgerMascot({ size = 100, variant = 'normal', className = '' }) {
+export default function BurgerMascot({ size = 100, variant = 'normal', className = '', icono = false }) {
+  // Modo ícono: el personaje completo (con patas, zapatos y gorro) tiene
+  // mucho aire arriba y abajo, y a 34px en la barra queda ilegible. Acá se
+  // ocultan esas partes y se recorta la vista al personaje y su objeto,
+  // así la cara y lo que sostiene ocupan casi todo el cuadro.
+  const viewBox = icono
+    ? variant === 'clientes'
+      ? '14 30 178 162'
+      : '10 30 182 152'
+    : '0 0 200 210';
+
   return (
     <div
       className={`mascota${className ? ` ${className}` : ''}`}
@@ -22,7 +32,7 @@ export default function BurgerMascot({ size = 100, variant = 'normal', className
         userSelect: 'none',
       }}
     >
-      <svg viewBox="0 0 200 210" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox={viewBox} width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <radialGradient id="fudiFloorShadow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#2A1B12" stopOpacity="0.3" />
@@ -66,15 +76,19 @@ export default function BurgerMascot({ size = 100, variant = 'normal', className
           </filter>
         </defs>
 
-        <ellipse cx="100" cy="200" rx="65" ry="8" fill="url(#fudiFloorShadow)" />
-        <rect x="68" y="165" width="10" height="22" rx="4" fill="#6B391F" />
-        <rect x="122" y="165" width="10" height="22" rx="4" fill="#6B391F" />
-        <path d="M55 186 C55 180 78 180 84 186 C86 193 84 196 68 196 C56 196 55 192 55 186 Z" fill="#1F2937" />
-        <path d="M58 187 C62 183 75 183 80 187" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
-        <rect x="64" y="193" width="18" height="3" fill="#111827" />
-        <path d="M116 186 C116 180 139 180 145 186 C147 193 145 196 129 196 C117 196 116 192 116 186 Z" fill="#1F2937" />
-        <path d="M119 187 C123 183 136 183 141 187" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
-        <rect x="125" y="193" width="18" height="3" fill="#111827" />
+        {!icono && (
+          <>
+            <ellipse cx="100" cy="200" rx="65" ry="8" fill="url(#fudiFloorShadow)" />
+            <rect x="68" y="165" width="10" height="22" rx="4" fill="#6B391F" />
+            <rect x="122" y="165" width="10" height="22" rx="4" fill="#6B391F" />
+            <path d="M55 186 C55 180 78 180 84 186 C86 193 84 196 68 196 C56 196 55 192 55 186 Z" fill="#1F2937" />
+            <path d="M58 187 C62 183 75 183 80 187" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
+            <rect x="64" y="193" width="18" height="3" fill="#111827" />
+            <path d="M116 186 C116 180 139 180 145 186 C147 193 145 196 129 196 C117 196 116 192 116 186 Z" fill="#1F2937" />
+            <path d="M119 187 C123 183 136 183 141 187" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
+            <rect x="125" y="193" width="18" height="3" fill="#111827" />
+          </>
+        )}
 
         <path d="M38 145 C38 145 42 172 100 172 C158 172 162 145 162 145 Z" fill="url(#fudiBunBottom)" />
         <ellipse cx="100" cy="146" rx="62" ry="7" fill="#C87A28" opacity="0.6" />
@@ -101,11 +115,13 @@ export default function BurgerMascot({ size = 100, variant = 'normal', className
         </g>
 
         {/* Gorrito de Vendedor */}
+        {!icono && (
         <g transform="translate(0, -2)">
           <path d="M80 34 L86 10 L114 10 L120 34 Z" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="2" />
           <path d="M89 10 L84 33 M98 10 L96 32 M102 10 L104 32 M111 10 L116 33" stroke="#DC2626" strokeWidth="4" strokeLinecap="round" />
           <path d="M72 34 C90 27 110 27 128 34" stroke="#1F2937" strokeWidth="4.5" strokeLinecap="round" />
         </g>
+        )}
 
         {/* Mini-Hamburguesa Bebé (Exclusivo variant="clientes") */}
         {variant === 'clientes' && (

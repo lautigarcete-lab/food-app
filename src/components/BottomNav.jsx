@@ -4,8 +4,8 @@ import BurgerMascot from './BurgerMascot.jsx';
 // Catálogo y Clientes usan la mascota (variantes 'catalogo' y 'clientes')
 // en vez de un ícono de línea, así que se envuelven para que reciban las
 // mismas props de tamaño que el resto.
-const MascotaCatalogo = (props) => <BurgerMascot size={props.width} variant="catalogo" />;
-const MascotaClientes = (props) => <BurgerMascot size={props.width} variant="clientes" />;
+const MascotaCatalogo = (props) => <BurgerMascot size={props.width} variant="catalogo" icono />;
+const MascotaClientes = (props) => <BurgerMascot size={props.width} variant="clientes" icono />;
 
 const TABS_IZQ = [
   { id: 'inicio', label: 'Inicio', Icon: IconInicio },

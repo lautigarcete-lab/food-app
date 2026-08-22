@@ -81,11 +81,11 @@ export default function ClientesPage() {
 
         <div className="segmentado segmentado--iconos">
           <button type="button" className={filtro === 'todos' ? 'is-active' : ''} onClick={() => setFiltro('todos')}>
-            <BurgerMascot size={36} variant="clientes" />
+            <BurgerMascot size={36} variant="clientes" icono />
             Todos ({clientes.length})
           </button>
           <button type="button" className={filtro === 'deben' ? 'is-active' : ''} onClick={() => setFiltro('deben')}>
-            <BurgerMascot size={36} variant="deben" />
+            <BurgerMascot size={36} variant="deben" icono />
             Deben ({conDeuda.length})
           </button>
           <button
@@ -93,7 +93,7 @@ export default function ClientesPage() {
             className={filtro === 'contactar' ? 'is-active' : ''}
             onClick={() => setFiltro('contactar')}
           >
-            <BurgerMascot size={36} variant="contactar" />
+            <BurgerMascot size={36} variant="contactar" icono />
             Contactar ({inactivos.length})
           </button>
         </div>
