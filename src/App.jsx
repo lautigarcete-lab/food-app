@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav.jsx';
 import BurgerMascot from './components/BurgerMascot.jsx';
 import InicioPage from './pages/InicioPage.jsx';
@@ -47,6 +47,7 @@ function PantallaCargando() {
   return (
     <div className="pantalla-centrada">
       <BurgerMascot size={80} variant="normal" />
+      <p className="marca">Fudi</p>
       <p className="ayuda-texto">Cargando…</p>
     </div>
   );
@@ -61,6 +62,12 @@ function ConNegocio() {
 
 export default function App() {
   const { usuario } = useAuth();
+
+  // Avisa a la red de seguridad de arranque (index.html) que Firebase Auth
+  // ya resolvió (con o sin usuario) y que el bloqueo de 15s ya no aplica.
+  useEffect(() => {
+    if (usuario !== undefined) window.__fudiMontada = true;
+  }, [usuario]);
 
   if (usuario === undefined) return <PantallaCargando />;
   if (usuario === null) return <AuthPage />;

@@ -1,10 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
 import {
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-} from 'firebase/firestore';
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  inMemoryPersistence,
+} from 'firebase/auth';
+import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
 
 // Credenciales del proyecto Firebase de Fudi POS (fudi-app-5013f). La apiKey
 // de una app web de Firebase no es secreta: el acceso a los datos se protege
@@ -21,15 +23,28 @@ const firebaseConfig = {
 
 export { firebaseConfig };
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+
+// getAuth() intenta detectar solo, en segundo plano, qué mecanismo de
+// persistencia usar — esa detección automática puede quedarse colgada
+// dentro del WebView de Android de Capacitor (no es un navegador
+// estándar), y toda la app queda esperando para siempre en "Cargando…".
+// initializeAuth con una lista explícita de persistencias evita esa
+// detección: prueba cada una en orden y, si ninguna funciona, sigue
+// igual con inMemoryPersistence en vez de trabarse.
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence],
+});
 
 // La base de datos se creó con el nombre "fudipos" (no "(default)"), y con
 // persistencia local: la app sigue funcionando sin conexión y Firestore
-// sincroniza solo apenas vuelve la señal.
+// sincroniza solo apenas vuelve la señal. Se usa el administrador de
+// pestañas por defecto (una sola pestaña): el multi-tab depende de
+// BroadcastChannel entre pestañas de navegador, algo que no aplica a un
+// WebView embebido y que también podía colgar la inicialización.
 export const db = initializeFirestore(
   app,
   {
-    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    localCache: persistentLocalCache(),
   },
   'fudipos'
 );

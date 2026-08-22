@@ -8,7 +8,99 @@
     <title>Fudi POS</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Esto se ve mientras carga el JavaScript y React lo reemplaza apenas
+         monta. Antes acá no había nada, así que cualquier demora o error de
+         arranque se veía como una pantalla en blanco sin ninguna explicación. -->
+    <div id="root">
+      <div id="arranque">
+        <div id="arranque-logo">Fudi POS</div>
+        <div id="arranque-texto">Abriendo…</div>
+      </div>
+    </div>
+
+    <style>
+      #arranque {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 24px;
+        background: #f4f7f2;
+        color: #0e4d34;
+        font-family: system-ui, -apple-system, sans-serif;
+        text-align: center;
+      }
+      #arranque-logo { font-size: 1.6rem; font-weight: 800; }
+      #arranque-texto { color: #7c8a83; font-size: 0.95rem; }
+      #arranque-detalle {
+        max-width: 32rem;
+        font-size: 0.8rem;
+        color: #7c8a83;
+        opacity: 0.85;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+      #arranque-boton {
+        margin-top: 8px;
+        padding: 12px 22px;
+        border: 0;
+        border-radius: 999px;
+        background: #0e4d34;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+    </style>
+
+    <script>
+      // Red de seguridad de arranque. Si el bundle no llega a cargar, no lo
+      // entiende este WebView, o React se cuelga antes de montar (por ejemplo
+      // esperando a Firebase), sin esto la app se quedaba en blanco/cargando
+      // para siempre y no había forma de saber por qué ni de reintentar.
+      (function () {
+        var yaMostrado = false;
+
+        window.__fudiFalloArranque = function (detalle) {
+          if (yaMostrado || window.__fudiMontada) return;
+          yaMostrado = true;
+          var cont = document.getElementById('arranque');
+          if (!cont) return;
+          cont.innerHTML =
+            '<div id="arranque-logo">Fudi POS</div>' +
+            '<div id="arranque-texto">No se pudo abrir la app.</div>' +
+            '<div id="arranque-detalle"></div>' +
+            '<button id="arranque-boton">Reintentar</button>';
+          cont.querySelector('#arranque-detalle').textContent = String(detalle || '');
+          cont.querySelector('#arranque-boton').onclick = function () {
+            window.location.reload();
+          };
+        };
+
+        window.addEventListener('error', function (e) {
+          // Los errores de recursos (una fuente, una imagen) no traen
+          // mensaje y no son motivo para tapar la app.
+          if (!e.message && !e.error) return;
+          window.__fudiFalloArranque((e.error && e.error.stack) || e.message);
+        });
+
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          window.__fudiFalloArranque((r && (r.stack || r.message)) || r);
+        });
+
+        // Si a los 15 segundos React todavía no montó (o montó pero se quedó
+        // esperando algo como Firebase), algo se colgó.
+        setTimeout(function () {
+          if (!window.__fudiMontada) {
+            window.__fudiFalloArranque('La app tardó demasiado en iniciar. Puede ser un problema de conexión.');
+          }
+        }, 15000);
+      })();
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
