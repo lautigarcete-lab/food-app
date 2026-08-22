@@ -11,7 +11,9 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromCache,
   getDocs,
+  getDocsFromCache,
   query,
   where,
   writeBatch,
@@ -21,15 +23,34 @@ import {
 import { db, firebaseConfig } from '../../firebase/config.js';
 import { generarId } from '../../utils/id.js';
 
+// Sin conexión, esperar al servidor no tiene sentido: Firestore ya guarda
+// localmente lo último que se sincronizó desde este celular, así que ante
+// cualquier falla de red se usa esa copia en vez de dejar todo colgado.
+async function obtenerDocs(q) {
+  try {
+    return await getDocs(q);
+  } catch {
+    return getDocsFromCache(q);
+  }
+}
+
+async function obtenerDoc(ref) {
+  try {
+    return await getDoc(ref);
+  } catch {
+    return getDocFromCache(ref);
+  }
+}
+
 /** Negocios a los que el usuario tiene acceso (dueño o con acceso), sin los archivados. */
 export async function listarMisNegocios(uid) {
   const q = query(collectionGroup(db, 'miembros'), where('uid', '==', uid));
-  const snap = await getDocs(q);
+  const snap = await obtenerDocs(q);
 
   const negocios = await Promise.all(
     snap.docs.map(async (miembroDoc) => {
       const negocioRef = miembroDoc.ref.parent.parent;
-      const negocioSnap = await getDoc(negocioRef);
+      const negocioSnap = await obtenerDoc(negocioRef);
       if (!negocioSnap.exists()) return null;
       const negocio = negocioSnap.data();
       return {

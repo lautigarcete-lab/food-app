@@ -43,33 +43,83 @@ function AppPrincipal() {
   );
 }
 
-function PantallaCargando() {
+function PantallaEsperando({ texto, mostrarReintentar, onReintentar }) {
   return (
     <div className="pantalla-centrada">
       <BurgerMascot size={80} variant="normal" />
       <p className="marca">Fudi</p>
-      <p className="ayuda-texto">Cargando…</p>
+      <p className="ayuda-texto">{texto}</p>
+      {mostrarReintentar && (
+        <button type="button" className="btn btn--secundario" onClick={onReintentar}>
+          Reintentar
+        </button>
+      )}
     </div>
   );
 }
 
+// Si algo tarda más de lo normal (típicamente: sin señal), después de unos
+// segundos habilita un botón de reintentar en vez de dejar a la persona
+// mirando "Cargando…" sin ninguna acción posible.
+function useTardaDemasiado(activo, ms = 9000) {
+  const [tarda, setTarda] = useState(false);
+  useEffect(() => {
+    if (!activo) {
+      setTarda(false);
+      return;
+    }
+    const id = setTimeout(() => setTarda(true), ms);
+    return () => clearTimeout(id);
+  }, [activo, ms]);
+  return tarda;
+}
+
 function ConNegocio() {
-  const { negocios, negocioActivo } = useNegocio();
-  if (negocios === undefined) return <PantallaCargando />;
+  const { negocios, negocioActivo, errorNegocios, refrescarNegocios } = useNegocio();
+  const cargando = negocios === undefined;
+  const tarda = useTardaDemasiado(cargando && !errorNegocios);
+
+  if (cargando) {
+    const sinConexion = typeof navigator !== 'undefined' && navigator.onLine === false;
+    let texto = 'Buscando tu negocio…';
+    if (errorNegocios) {
+      texto = sinConexion ? 'Sin conexión. Vas a poder entrar apenas vuelva la señal.' : 'No se pudo cargar tu negocio.';
+    } else if (tarda) {
+      texto = sinConexion ? 'Sin conexión. Esperando señal…' : 'Esto está tardando más de lo normal…';
+    }
+    return (
+      <PantallaEsperando
+        texto={texto}
+        mostrarReintentar={Boolean(errorNegocios) || tarda}
+        onReintentar={() => refrescarNegocios().catch(() => {})}
+      />
+    );
+  }
   if (!negocioActivo) return <SeleccionarNegocioPage />;
   return <AppPrincipal />;
 }
 
 export default function App() {
   const { usuario } = useAuth();
+  const tardaAuth = useTardaDemasiado(usuario === undefined);
 
-  // Avisa a la red de seguridad de arranque (index.html) que Firebase Auth
-  // ya resolvió (con o sin usuario) y que el bloqueo de 15s ya no aplica.
+  // Avisa a la red de seguridad de arranque (index.html) que React montó y
+  // está renderizando: de acá en más, si algo se cuelga (sesión, negocio),
+  // cada pantalla lo maneja con su propio mensaje y botón de reintentar en
+  // vez de la pantalla de error genérica de esa red de seguridad.
   useEffect(() => {
-    if (usuario !== undefined) window.__fudiMontada = true;
-  }, [usuario]);
+    window.__fudiMontada = true;
+  }, []);
 
-  if (usuario === undefined) return <PantallaCargando />;
+  if (usuario === undefined) {
+    return (
+      <PantallaEsperando
+        texto={tardaAuth ? 'Esto está tardando más de lo normal…' : 'Cargando…'}
+        mostrarReintentar={tardaAuth}
+        onReintentar={() => window.location.reload()}
+      />
+    );
+  }
   if (usuario === null) return <AuthPage />;
 
   return (
