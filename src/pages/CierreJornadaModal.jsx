@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Modal from '../components/Modal.jsx';
-import BurgerMascot from '../components/BurgerMascot.jsx';
+import { Wallet } from 'lucide-react';
 import { listarVentas } from '../db/repositories/ventasRepo.js';
 import { listarGastos } from '../db/repositories/gastosRepo.js';
 import { formatMoney } from '../utils/money.js';
@@ -113,7 +113,9 @@ export default function CierreJornadaModal({ onClose }) {
     >
       <div className="form">
         <div className="cierre-jornada__cabecera">
-          <BurgerMascot size={80} variant="balance" />
+          <div className="w-16 h-16 rounded-full bg-fudi-yellow/15 flex items-center justify-center text-fudi-red">
+            <Wallet size={30} strokeWidth={2.2} />
+          </div>
           <small className="ayuda-texto">{formatearFechaLarga(new Date())}</small>
         </div>
 

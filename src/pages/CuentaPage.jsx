@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, Trash2 } from 'lucide-react';
 import Header from '../components/Header.jsx';
+import NegocioAvatar from '../components/NegocioAvatar.jsx';
+import SelectorColorNegocio from '../components/SelectorColorNegocio.jsx';
+import { leerYRedimensionarImagen } from '../utils/image.js';
 import { useAuth, mensajeDeError } from '../auth/AuthContext.jsx';
 import { useNegocio } from '../negocio/NegocioContext.jsx';
 import {
@@ -7,6 +11,7 @@ import {
   agregarColaborador,
   quitarColaborador,
   archivarNegocio,
+  actualizarIdentidadNegocio,
 } from '../db/repositories/negociosRepo.js';
 
 export default function CuentaPage({ onVolver }) {
@@ -21,6 +26,12 @@ export default function CuentaPage({ onVolver }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [editandoIdentidad, setEditandoIdentidad] = useState(false);
+  const [color, setColor] = useState(negocioActivo?.color || 'bordo');
+  const [foto, setFoto] = useState(negocioActivo?.foto || null);
+  const [guardandoIdentidad, setGuardandoIdentidad] = useState(false);
+  const [errorIdentidad, setErrorIdentidad] = useState('');
+  const inputFoto = useRef(null);
 
   const esDueño = negocioActivo?.rol === 'dueño';
 
@@ -64,6 +75,33 @@ export default function CuentaPage({ onVolver }) {
     }
   }
 
+  async function handleElegirFoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setFoto(await leerYRedimensionarImagen(file, 320, 0.7));
+      setErrorIdentidad('');
+    } catch {
+      setErrorIdentidad('No se pudo leer esa imagen.');
+    }
+  }
+
+  async function handleGuardarIdentidad() {
+    setGuardandoIdentidad(true);
+    setErrorIdentidad('');
+    try {
+      await actualizarIdentidadNegocio(negocioActivo.id, { color, foto });
+      await refrescarNegocios();
+      setEditandoIdentidad(false);
+      setMensaje('Listo, se actualizó la imagen del negocio.');
+    } catch (err) {
+      setErrorIdentidad(err.message || 'No se pudo guardar.');
+    } finally {
+      setGuardandoIdentidad(false);
+    }
+  }
+
   async function handleQuitar(uid) {
     if (!window.confirm('¿Quitarle el acceso a esta persona?')) return;
     await quitarColaborador(negocioActivo.id, uid);
@@ -87,9 +125,99 @@ export default function CuentaPage({ onVolver }) {
           <small>{usuario.email}</small>
         </div>
 
-        <h3 className="titulo-seccion">{negocioActivo.nombre}</h3>
-        <p className="ayuda-texto">{esDueño ? 'Control total (dueño)' : 'Con acceso'}</p>
+        <div className="flex items-center gap-4 mb-4">
+          <NegocioAvatar negocio={negocioActivo} size={56} />
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-fudi-text truncate">{negocioActivo.nombre}</h3>
+            <p className="text-xs font-medium text-fudi-muted">
+              {esDueño ? 'Control total (dueño)' : 'Con acceso'}
+            </p>
+          </div>
+        </div>
 
+        {esDueño && !editandoIdentidad && (
+          <button
+            type="button"
+            className="btn btn--secundario btn--chico"
+            onClick={() => {
+              setColor(negocioActivo.color || 'bordo');
+              setFoto(negocioActivo.foto || null);
+              setEditandoIdentidad(true);
+            }}
+          >
+            Cambiar foto y color
+          </button>
+        )}
+
+        {esDueño && editandoIdentidad && (
+          <div className="space-y-4">
+            <SelectorColorNegocio
+              color={color}
+              onElegir={setColor}
+              nombre={negocioActivo.nombre}
+              foto={foto}
+              ayuda={
+                foto
+                  ? 'Mientras haya foto del local, se muestra la foto. El color queda de respaldo.'
+                  : 'Así se ve el negocio en el inicio mientras no haya foto del local.'
+              }
+            />
+
+            <input
+              ref={inputFoto}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleElegirFoto}
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="flex-1 bg-white text-fudi-text rounded-2xl font-bold min-h-[52px] px-4 shadow-soft flex items-center justify-center gap-2"
+                onClick={() => inputFoto.current?.click()}
+              >
+                <Camera size={18} strokeWidth={2.4} />
+                {foto ? 'Cambiar foto' : 'Foto del local'}
+              </button>
+              {foto && (
+                <button
+                  type="button"
+                  aria-label="Quitar foto"
+                  className="w-[52px] bg-white text-fudi-red rounded-2xl shadow-soft flex items-center justify-center"
+                  onClick={() => setFoto(null)}
+                >
+                  <Trash2 size={18} strokeWidth={2.4} />
+                </button>
+              )}
+            </div>
+
+            {errorIdentidad && (
+              <p className="text-sm font-semibold text-fudi-red bg-red-50 rounded-2xl px-4 py-3">
+                {errorIdentidad}
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="flex-1 bg-white text-fudi-text rounded-2xl font-bold min-h-[52px] px-4 shadow-soft"
+                onClick={() => setEditandoIdentidad(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="flex-[2] bg-fudi-yellow text-fudi-text rounded-2xl font-bold min-h-[52px] px-4 shadow-sm disabled:opacity-60"
+                onClick={handleGuardarIdentidad}
+                disabled={guardandoIdentidad}
+              >
+                {guardandoIdentidad ? 'Guardando…' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="espaciador" />
         <button type="button" className="btn btn--secundario" onClick={salirDeNegocio}>
           Cambiar de negocio
         </button>

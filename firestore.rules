@@ -21,13 +21,17 @@ rules_version = '2';
 //
 // Collection: negocios/{negocioId}
 //   - nombre: string (1-60)
+//   - color: id de color de la paleta cerrada de utils/coloresNegocio.js
+//     (opcional; es el color del ícono cuando no hay foto del local)
+//   - foto: string|null (dataURL JPEG del local, redimensionada) u opcional
 //   - creadoPor: string (uid, inmutable)
 //   - creadoEn: string ISO 8601 (inmutable)
 //   - archivado: bool
 //   - miembrosUids: array<string> (uids con acceso; duplica los ids de
 //     negocios/{negocioId}/miembros/* — ver comentario en ese match block)
 //   Cualquier miembro puede leer. Solo el dueño puede actualizar
-//   (nombre/archivado/miembrosUids). No hay borrado físico, solo archivado.
+//   (nombre/color/foto/archivado/miembrosUids). No hay borrado físico, solo
+//   archivado.
 //
 // Collection: negocios/{negocioId}/miembros/{uid}  (uid = id del documento)
 //   - uid: string (debe coincidir con el id del documento, inmutable)
@@ -231,10 +235,29 @@ service cloud.firestore {
       // array-contains sí es un patrón que Firestore puede validar contra
       // una regla de "list", así que listarMisNegocios consulta esto en vez
       // de recorrer miembros.
+      // Paleta cerrada: los mismos ids que utils/coloresNegocio.js. Se
+      // valida acá para que el color guardado siempre sea uno que la app
+      // sepa dibujar.
+      function isValidColorNegocio(data) {
+        return !('color' in data) || data.color in [
+          'bordo', 'ambar', 'verde', 'oliva', 'petroleo',
+          'azul', 'violeta', 'naranja', 'rosa', 'carbon'
+        ];
+      }
+
+      // La foto del local va como dataURL adentro del documento (igual que
+      // las fotos de los platos), así no hace falta Storage.
+      function isValidFotoNegocio(data) {
+        return !('foto' in data) || data.foto == null ||
+          (data.foto is string && data.foto.size() <= 900000);
+      }
+
       function isValidNegocioCreate(data) {
-        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
+        return hasOnlyAllowedFields(data, ['nombre', 'color', 'foto', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
           hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
           isValidString(data.nombre, 1, 60) &&
+          isValidColorNegocio(data) &&
+          isValidFotoNegocio(data) &&
           data.creadoPor == request.auth.uid &&
           isValidDateString(data.creadoEn) &&
           data.archivado == false &&
@@ -242,9 +265,11 @@ service cloud.firestore {
       }
 
       function isValidNegocioUpdate(data) {
-        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
+        return hasOnlyAllowedFields(data, ['nombre', 'color', 'foto', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
           hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
           isValidString(data.nombre, 1, 60) &&
+          isValidColorNegocio(data) &&
+          isValidFotoNegocio(data) &&
           data.archivado is bool &&
           data.miembrosUids is list && data.miembrosUids.size() <= 50;
       }

@@ -6,7 +6,7 @@ import { listarInsumos } from '../db/repositories/insumosRepo.js';
 import { generarNotaPedido, compartirNota } from '../utils/nota.js';
 import { formatMoney } from '../utils/money.js';
 import { IconAlerta } from '../components/icons.jsx';
-import BurgerMascot from '../components/BurgerMascot.jsx';
+import { CheckCircle2 } from 'lucide-react';
 
 const MEDIOS_PAGO = [
   { id: 'efectivo', label: 'Efectivo' },
@@ -109,7 +109,9 @@ export default function CerrarVentaModal({
       >
         <div className="form">
           <div className="venta-ok">
-            <BurgerMascot size={110} variant="success" className="venta-ok__mascota" />
+            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center text-green-600 mx-auto mb-1">
+              <CheckCircle2 size={40} strokeWidth={2.2} />
+            </div>
             <strong>{formatMoney(total)}</strong>
             <small>
               {tipoPago === 'fiado'

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { ArrowDownRight, ArrowUpRight, Plus, ShoppingBag, PieChart, Box } from 'lucide-react';
-import BurgerMascot from '../components/BurgerMascot.jsx';
+import NegocioAvatar from '../components/NegocioAvatar.jsx';
 import CierreJornadaModal from './CierreJornadaModal.jsx';
-import { useAuth } from '../auth/AuthContext.jsx';
 import { useNegocio } from '../negocio/NegocioContext.jsx';
 import { totalesDeVentas, listarVentas } from '../db/repositories/ventasRepo.js';
 import { totalGastos, listarGastos, etiquetaCategoria } from '../db/repositories/gastosRepo.js';
+import { listarTareas } from '../db/repositories/organizacionRepo.js';
 import { formatMoney } from '../utils/money.js';
-import { rangoDelPeriodo, formatearHora, esHoy, formatearFechaCorta } from '../utils/fechas.js';
+import { rangoDelPeriodo, formatearHora, esHoy, formatearFechaCorta, finDelDia } from '../utils/fechas.js';
 
 const MEDIOS = {
   efectivo: 'Efectivo',
@@ -27,12 +27,12 @@ function cuando(fecha) {
 }
 
 export default function DashboardPage({ setView }) {
-  const { usuario } = useAuth();
   const { negocioActivo } = useNegocio();
   const [balance, setBalance] = useState(0);
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [verCierre, setVerCierre] = useState(false);
+  const [recordatorio, setRecordatorio] = useState(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -70,31 +70,47 @@ export default function DashboardPage({ setView }) {
       })
       .catch(() => !cancelado && setCargando(false));
 
+    // Recordatorio del día: la tarea pendiente más próxima que vence hoy (o
+    // que ya venció). Si no hay ninguna no se muestra nada.
+    const limite = finDelDia();
+    listarTareas()
+      .then((tareas) => {
+        if (cancelado) return;
+        const pendientes = tareas.filter((t) => !t.hecha && new Date(t.fecha) <= limite);
+        setRecordatorio(
+          pendientes.length ? { texto: pendientes[0].texto, otras: pendientes.length - 1 } : null
+        );
+      })
+      .catch(() => {});
+
     return () => {
       cancelado = true;
     };
   }, []);
 
-  const nombre = usuario?.displayName?.split(' ')[0] || negocioActivo?.nombre || 'Fudi';
-
   const acciones = [
     { name: 'Vender', icon: Plus, color: 'text-fudi-red', bg: 'bg-red-50', action: () => setView('vender') },
     { name: 'Catálogo', icon: ShoppingBag, color: 'text-fudi-yellow', bg: 'bg-amber-50', action: () => setView('catalogo') },
     { name: 'Insumos', icon: Box, color: 'text-fudi-red', bg: 'bg-red-50', action: () => setView('insumos') },
-    { name: 'Cierre Z', icon: PieChart, color: 'text-fudi-yellow', bg: 'bg-amber-50', action: () => setVerCierre(true) },
+    { name: 'Cierre', icon: PieChart, color: 'text-fudi-yellow', bg: 'bg-amber-50', action: () => setVerCierre(true) },
   ];
 
   return (
     <div className="min-h-screen bg-fudi-bg pb-32 font-sans">
       {/* Header */}
       <div className="px-6 pt-12 pb-4 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-fudi-yellow/20 rounded-full flex items-center justify-center shadow-inner overflow-hidden">
-            <BurgerMascot size={40} variant="normal" icono />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-fudi-muted">Hola, {nombre}</p>
-            <h1 className="text-2xl font-extrabold text-fudi-text">Resumen Fudi</h1>
+        <div className="flex items-center gap-4 min-w-0">
+          <NegocioAvatar negocio={negocioActivo} size={56} />
+          <div className="min-w-0">
+            {recordatorio && (
+              <p className="text-xs font-medium text-fudi-muted/60 truncate">
+                {recordatorio.texto}
+                {recordatorio.otras > 0 && ` +${recordatorio.otras}`}
+              </p>
+            )}
+            <h1 className="text-2xl font-extrabold text-fudi-text truncate">
+              {negocioActivo?.nombre || 'Fudi'}
+            </h1>
           </div>
         </div>
       </div>
@@ -150,9 +166,9 @@ export default function DashboardPage({ setView }) {
             movimientos.map((tx) => (
               <div
                 key={tx.id}
-                className="flex items-center justify-between p-4 rounded-[24px] hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between gap-3 p-4 rounded-[24px] hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                   <div
                     className={`w-12 h-12 rounded-[18px] flex items-center justify-center shrink-0 ${
                       tx.type === 'in' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-fudi-red'

@@ -4,7 +4,6 @@ import EmptyState from '../components/EmptyState.jsx';
 import Modal from '../components/Modal.jsx';
 import CerrarVentaModal from './CerrarVentaModal.jsx';
 import CierreJornadaModal from './CierreJornadaModal.jsx';
-import BurgerMascot from '../components/BurgerMascot.jsx';
 import { listarPlatos } from '../db/repositories/platosRepo.js';
 import { listarCombos } from '../db/repositories/combosRepo.js';
 import { formatMoney } from '../utils/money.js';
@@ -119,7 +118,6 @@ export default function VenderPage() {
             >
               <IconCierre width={20} height={20} />
             </button>
-            <BurgerMascot size={48} variant="normal" />
           </div>
         }
       />

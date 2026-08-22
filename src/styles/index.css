@@ -625,14 +625,6 @@ h3 {
   font-size: 1.05rem;
 }
 
-.mascota {
-  flex-shrink: 0;
-}
-
-.venta-ok__mascota {
-  margin-bottom: 4px;
-}
-
 .cierre-jornada__fila {
   display: flex;
   justify-content: space-between;

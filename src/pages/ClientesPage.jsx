@@ -8,7 +8,7 @@ import { resumenDeClientes } from '../db/repositories/ventasRepo.js';
 import { formatMoney } from '../utils/money.js';
 import { diasDesde } from '../utils/fechas.js';
 import { IconMas2 } from '../components/icons.jsx';
-import BurgerMascot from '../components/BurgerMascot.jsx';
+import { Users, AlertCircle, PhoneCall } from 'lucide-react';
 
 // A partir de cuántos días sin comprar se marca a un cliente para
 // contactarlo. Un puesto de comida vende seguido: dos semanas sin
@@ -81,11 +81,11 @@ export default function ClientesPage() {
 
         <div className="segmentado segmentado--iconos">
           <button type="button" className={filtro === 'todos' ? 'is-active' : ''} onClick={() => setFiltro('todos')}>
-            <BurgerMascot size={36} variant="clientes" icono />
+            <Users size={26} strokeWidth={2.2} />
             Todos ({clientes.length})
           </button>
           <button type="button" className={filtro === 'deben' ? 'is-active' : ''} onClick={() => setFiltro('deben')}>
-            <BurgerMascot size={36} variant="deben" icono />
+            <AlertCircle size={26} strokeWidth={2.2} />
             Deben ({conDeuda.length})
           </button>
           <button
@@ -93,7 +93,7 @@ export default function ClientesPage() {
             className={filtro === 'contactar' ? 'is-active' : ''}
             onClick={() => setFiltro('contactar')}
           >
-            <BurgerMascot size={36} variant="contactar" icono />
+            <PhoneCall size={26} strokeWidth={2.2} />
             Contactar ({inactivos.length})
           </button>
         </div>

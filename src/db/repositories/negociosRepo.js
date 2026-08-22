@@ -22,6 +22,7 @@ import {
 } from 'firebase/firestore';
 import { db, firebaseConfig } from '../../firebase/config.js';
 import { generarId } from '../../utils/id.js';
+import { COLOR_NEGOCIO_POR_DEFECTO, IDS_COLORES_NEGOCIO } from '../../utils/coloresNegocio.js';
 
 // Sin conexión, esperar al servidor no tiene sentido: Firestore ya guarda
 // localmente lo último que se sincronizó desde este celular, así que ante
@@ -69,6 +70,8 @@ export async function listarMisNegocios(uid) {
       return {
         id: negocioDoc.id,
         nombre: negocio.nombre,
+        color: negocio.color || COLOR_NEGOCIO_POR_DEFECTO,
+        foto: negocio.foto || null,
         archivado: false,
         rol: miembroSnap.data().rol,
       };
@@ -89,12 +92,14 @@ export async function listarMisNegocios(uid) {
  * or insufficient permissions". Por eso se guarda primero el negocio y,
  * una vez confirmado, se agrega el miembro.
  */
-export async function crearNegocio(nombre, uid) {
+export async function crearNegocio(nombre, uid, color = COLOR_NEGOCIO_POR_DEFECTO) {
   const negocioId = generarId();
   const ahora = new Date().toISOString();
+  const colorElegido = IDS_COLORES_NEGOCIO.includes(color) ? color : COLOR_NEGOCIO_POR_DEFECTO;
 
   await setDoc(doc(db, 'negocios', negocioId), {
     nombre: nombre.trim(),
+    color: colorElegido,
     creadoPor: uid,
     creadoEn: ahora,
     archivado: false,
@@ -108,7 +113,31 @@ export async function crearNegocio(nombre, uid) {
     agregadoEn: ahora,
   });
 
-  return { id: negocioId, nombre: nombre.trim(), rol: 'dueño', archivado: false };
+  return {
+    id: negocioId,
+    nombre: nombre.trim(),
+    color: colorElegido,
+    foto: null,
+    rol: 'dueño',
+    archivado: false,
+  };
+}
+
+/**
+ * Cambia la identidad visual del negocio (color y/o foto del local). Solo el
+ * dueño puede: las reglas de Firestore lo exigen igual.
+ *
+ * La foto se guarda como dataURL dentro del propio documento, igual que las
+ * fotos de los platos, para no depender de Storage.
+ */
+export async function actualizarIdentidadNegocio(negocioId, { color, foto } = {}) {
+  const campos = {};
+  if (color !== undefined) {
+    campos.color = IDS_COLORES_NEGOCIO.includes(color) ? color : COLOR_NEGOCIO_POR_DEFECTO;
+  }
+  if (foto !== undefined) campos.foto = foto || null;
+  if (Object.keys(campos).length === 0) return;
+  await updateDoc(doc(db, 'negocios', negocioId), campos);
 }
 
 /** Solo el dueño puede archivar (las reglas de Firestore lo exigen igual). */

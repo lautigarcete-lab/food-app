@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav.jsx';
-import BurgerMascot from './components/BurgerMascot.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import VenderPage from './pages/VenderPage.jsx';
 import CatalogoPage from './pages/CatalogoPage.jsx';
@@ -48,7 +47,6 @@ function AppPrincipal() {
 function PantallaEsperando({ texto, mostrarReintentar, onReintentar }) {
   return (
     <div className="pantalla-centrada">
-      <BurgerMascot size={80} variant="normal" />
       <p className="marca">Fudi</p>
       <p className="ayuda-texto">{texto}</p>
       {mostrarReintentar && (

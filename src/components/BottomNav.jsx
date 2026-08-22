@@ -1,19 +1,19 @@
-import { Home, ShoppingBag, BookOpen, Settings } from 'lucide-react';
+import { Home, ShoppingBag, BookOpen, Users, Settings } from 'lucide-react';
 
 // Menú inferior flotante tipo píldora.
 //
-// Los ids del diseño (home / vender / catalogo / ajustes) se mapean a las
-// vistas que ya existen en App.jsx, para no tocar la navegación. Clientes
-// dejó de tener pestaña propia y se entra desde Ajustes ("Más").
+// Los ids del diseño se mapean a las vistas que ya existen en App.jsx, para
+// no tocar la navegación.
 const NAV = [
   { id: 'home', vista: 'inicio', icon: Home, label: 'Inicio' },
   { id: 'vender', vista: 'vender', icon: ShoppingBag, label: 'Vender' },
   { id: 'catalogo', vista: 'catalogo', icon: BookOpen, label: 'Catálogo' },
+  { id: 'clientes', vista: 'clientes', icon: Users, label: 'Clientes' },
   { id: 'ajustes', vista: 'mas', icon: Settings, label: 'Ajustes' },
 ];
 
 // Las sub-vistas cuelgan de Ajustes y lo dejan marcado como activo.
-const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'respaldo', 'cuenta', 'clientes']);
+const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'respaldo', 'cuenta']);
 
 export default function BottomNav({ vistaActual, onCambiarVista }) {
   return (
