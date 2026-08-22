@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav.jsx';
 import BurgerMascot from './components/BurgerMascot.jsx';
-import InicioPage from './pages/InicioPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
 import VenderPage from './pages/VenderPage.jsx';
 import CatalogoPage from './pages/CatalogoPage.jsx';
 import ClientesPage from './pages/ClientesPage.jsx';
@@ -28,7 +28,7 @@ function AppPrincipal() {
   return (
     <div className="app-shell">
       <main className="app-main">
-        {vista === 'inicio' && <InicioPage onIr={setVista} />}
+        {vista === 'inicio' && <DashboardPage setView={setVista} />}
         {vista === 'vender' && <VenderPage />}
         {vista === 'catalogo' && <CatalogoPage />}
         {vista === 'clientes' && <ClientesPage />}

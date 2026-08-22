@@ -133,51 +133,49 @@ export default function VenderPage() {
           />
         ) : (
           <>
-            <div className="chips">
-              <button
-                type="button"
-                className={categoria === 'todos' ? 'is-active' : ''}
-                onClick={() => setCategoria('todos')}
-              >
-                Todos
-              </button>
-              {categorias.map((c) => (
+            <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar">
+              {[
+                { id: 'todos', label: 'Todos' },
+                ...categorias.map((c) => ({ id: c, label: c })),
+                ...(combos.length > 0 ? [{ id: 'combos', label: 'Combos' }] : []),
+              ].map((c) => (
                 <button
-                  key={c}
+                  key={c.id}
                   type="button"
-                  className={categoria === c ? 'is-active' : ''}
-                  onClick={() => setCategoria(c)}
+                  onClick={() => setCategoria(c.id)}
+                  className={`shrink-0 min-h-[38px] px-4 rounded-full border text-sm font-semibold transition-colors ${
+                    categoria === c.id
+                      ? 'bg-fudi-red border-fudi-red text-white'
+                      : 'bg-white border-[#EFE8DE] text-fudi-muted'
+                  }`}
                 >
-                  {c}
+                  {c.label}
                 </button>
               ))}
-              {combos.length > 0 && (
-                <button
-                  type="button"
-                  className={categoria === 'combos' ? 'is-active' : ''}
-                  onClick={() => setCategoria('combos')}
-                >
-                  Combos
-                </button>
-              )}
             </div>
 
             {tarjetas.length === 0 ? (
               <EmptyState titulo="No hay nada en esta categoría" />
             ) : (
-              <div className="grid-venta">
+              <div className="grid grid-cols-2 gap-3">
                 {tarjetas.map((tarjeta) => {
                   const enCarrito = cantidadEnCarrito(tarjeta);
                   return (
                     <button
                       key={claveDe(tarjeta.tipo, tarjeta.id)}
                       type="button"
-                      className={`venta-card${enCarrito ? ' is-en-carrito' : ''}`}
                       onClick={() => agregar(tarjeta)}
+                      className={`relative flex flex-col justify-between gap-2 min-h-[100px] p-4 text-left bg-white rounded-[24px] shadow-soft border-2 transition-transform active:scale-[0.97] ${
+                        enCarrito ? 'border-fudi-red' : 'border-transparent'
+                      }`}
                     >
-                      {enCarrito > 0 && <span className="venta-card__badge">{enCarrito}</span>}
-                      <span className="venta-card__nombre">{tarjeta.nombre}</span>
-                      <span className="venta-card__precio">{formatMoney(tarjeta.precio)}</span>
+                      {enCarrito > 0 && (
+                        <span className="absolute -top-2 -right-2 min-w-[26px] h-[26px] px-2 rounded-full bg-fudi-red text-white text-sm font-extrabold flex items-center justify-center">
+                          {enCarrito}
+                        </span>
+                      )}
+                      <span className="font-bold leading-tight text-fudi-text">{tarjeta.nombre}</span>
+                      <span className="font-extrabold text-fudi-red">{formatMoney(tarjeta.precio)}</span>
                     </button>
                   );
                 })}
@@ -188,30 +186,40 @@ export default function VenderPage() {
       </div>
 
       {carrito.length > 0 && (
-        <div className="barra-cobro-rapido">
-          <div className="barra-cobro-rapido__fila">
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[520px] z-40 bg-white rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.08)] px-5 pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+112px)] flex flex-col gap-3">
+          <div className="flex gap-2">
             {MEDIOS_PAGO_RAPIDO.map((m) => (
               <button
                 key={m.id}
                 type="button"
-                className={`opcion-pago opcion-pago--chica${medioPagoRapido === m.id ? ' is-active' : ''}`}
                 onClick={() => setMedioPagoRapido(m.id)}
+                className={`flex-1 min-h-[40px] px-1 rounded-full border text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                  medioPagoRapido === m.id
+                    ? 'bg-fudi-yellow/20 border-fudi-yellow text-fudi-text'
+                    : 'bg-white border-[#EFE8DE] text-fudi-muted'
+                }`}
               >
                 {m.label}
               </button>
             ))}
           </div>
-          <div className="barra-cobro-rapido__fila">
-            <button type="button" className="barra-cobro-rapido__resumen" onClick={() => setVerCarrito(true)}>
-              <strong>{formatMoney(total)}</strong>
-              <small>{cantidadTotal} {cantidadTotal === 1 ? 'ítem' : 'ítems'} · ver detalle</small>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setVerCarrito(true)}
+              className="flex-1 flex flex-col items-start text-left bg-transparent border-0 p-0"
+            >
+              <strong className="text-xl font-black text-fudi-text">{formatMoney(total)}</strong>
+              <small className="text-xs font-medium text-fudi-muted">
+                {cantidadTotal} {cantidadTotal === 1 ? 'ítem' : 'ítems'} · ver detalle
+              </small>
             </button>
             <button
               type="button"
-              className="btn btn--acento barra-cobro-rapido__rapido"
               onClick={iniciarCobroRapido}
+              className="bg-fudi-yellow text-fudi-text rounded-2xl font-bold min-h-[52px] px-6 shrink-0 transition-transform active:scale-95"
             >
-              ⚡ Cobro rápido
+              Cobrar
             </button>
           </div>
         </div>

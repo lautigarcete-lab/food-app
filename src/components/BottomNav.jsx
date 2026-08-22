@@ -1,68 +1,47 @@
-import { IconInicio, IconVender, IconMas } from './icons.jsx';
-import BurgerMascot from './BurgerMascot.jsx';
+import { Home, ShoppingBag, BookOpen, Settings } from 'lucide-react';
 
-// Catálogo y Clientes usan la mascota (variantes 'catalogo' y 'clientes')
-// en vez de un ícono de línea, así que se envuelven para que reciban las
-// mismas props de tamaño que el resto.
-const MascotaCatalogo = (props) => <BurgerMascot size={props.width} variant="catalogo" icono />;
-const MascotaClientes = (props) => <BurgerMascot size={props.width} variant="clientes" icono />;
-
-const TABS_IZQ = [
-  { id: 'inicio', label: 'Inicio', Icon: IconInicio },
-  { id: 'catalogo', label: 'Catálogo', Icon: MascotaCatalogo },
+// Menú inferior flotante tipo píldora.
+//
+// Los ids del diseño (home / vender / catalogo / ajustes) se mapean a las
+// vistas que ya existen en App.jsx, para no tocar la navegación. Clientes
+// dejó de tener pestaña propia y se entra desde Ajustes ("Más").
+const NAV = [
+  { id: 'home', vista: 'inicio', icon: Home, label: 'Inicio' },
+  { id: 'vender', vista: 'vender', icon: ShoppingBag, label: 'Vender' },
+  { id: 'catalogo', vista: 'catalogo', icon: BookOpen, label: 'Catálogo' },
+  { id: 'ajustes', vista: 'mas', icon: Settings, label: 'Ajustes' },
 ];
 
-const TABS_DER = [
-  { id: 'clientes', label: 'Clientes', Icon: MascotaClientes },
-  { id: 'mas', label: 'Más', Icon: IconMas },
-];
-
-// Las sub-vistas (insumos, gastos, tareas, respaldo, cuenta) cuelgan de
-// "Más" y se muestran como activo el ícono "Más" para no confundir con
-// menús anidados.
-const GRUPO_MAS = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'respaldo', 'cuenta']);
+// Las sub-vistas cuelgan de Ajustes y lo dejan marcado como activo.
+const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'respaldo', 'cuenta', 'clientes']);
 
 export default function BottomNav({ vistaActual, onCambiarVista }) {
-  function activo(id) {
-    return id === 'mas' ? GRUPO_MAS.has(vistaActual) : vistaActual === id;
-  }
-
   return (
-    <nav className="bottom-nav" aria-label="Navegación principal">
-      <div className="bottom-nav__fila">
-        {TABS_IZQ.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className={`bottom-nav__item${activo(id) ? ' is-active' : ''}`}
-            onClick={() => onCambiarVista(id)}
-          >
-            <Icon width={34} height={34} />
-            <span>{label}</span>
-          </button>
-        ))}
-
-        <button
-          type="button"
-          className={`bottom-nav__central${activo('vender') ? ' is-active' : ''}`}
-          onClick={() => onCambiarVista('vender')}
-          aria-label="Vender"
-        >
-          <IconVender width={26} height={26} />
-        </button>
-
-        {TABS_DER.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className={`bottom-nav__item${activo(id) ? ' is-active' : ''}`}
-            onClick={() => onCambiarVista(id)}
-          >
-            <Icon width={34} height={34} />
-            <span>{label}</span>
-          </button>
-        ))}
+    <div className="fixed bottom-6 left-6 right-6 z-50 mx-auto max-w-[472px]">
+      <div className="bg-fudi-red rounded-full px-6 py-4 flex justify-between items-center shadow-float">
+        {NAV.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            item.vista === 'mas' ? GRUPO_AJUSTES.has(vistaActual) : vistaActual === item.vista;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={item.label}
+              onClick={() => onCambiarVista(item.vista)}
+              className={`relative p-3 rounded-full transition-all duration-300 ${
+                isActive ? 'bg-fudi-yellow shadow-lg -translate-y-2' : 'bg-transparent hover:bg-white/10'
+              }`}
+            >
+              <Icon
+                size={24}
+                strokeWidth={isActive ? 2.5 : 2}
+                className={isActive ? 'text-white' : 'text-white/60'}
+              />
+            </button>
+          );
+        })}
       </div>
-    </nav>
+    </div>
   );
 }

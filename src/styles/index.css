@@ -1,85 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ------------------------------------------------------------------ */
-/* Tipografías propias — autohospedadas para que funcionen 100% offline */
+/* Tipografía — Outfit, autohospedada                                  */
 /* ------------------------------------------------------------------ */
 
-/* Reparto de tipografías:
-   - Baloo 2 para el logo (en mayúscula): redondeada y gruesa.
-   - Playfair Display para los títulos: serif de alto contraste.
-   - Nunito para el texto corrido y Fredoka para los montos grandes, que
-     son los que hay que leer de reojo mientras se atiende.
-   Las cuatro son SIL OFL, libres para uso comercial. Se eligieron como
-   equivalentes de Boring Time y Mermaid, que son de uso personal y piden
-   licencia comercial para embeberlas en una app. */
+/* La fuente va autohospedada y no por @import de Google Fonts: la app se
+   usa en el puesto, muchas veces sin señal, y un @import remoto no carga
+   sin internet (el texto caería a la tipografía del sistema). */
 @font-face {
-  font-family: 'Baloo 2';
-  src: url('/fonts/Baloo2-Variable.woff2') format('woff2');
-  font-weight: 400 800;
+  font-family: 'Outfit';
+  src: url('/fonts/Outfit-Variable.woff2') format('woff2');
+  font-weight: 300 800;
   font-style: normal;
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'Playfair Display';
-  src: url('/fonts/PlayfairDisplay-Variable.woff2') format('woff2');
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
+body {
+  background-color: theme('colors.fudi.bg');
+  color: theme('colors.fudi.text');
+  font-family: 'Outfit', sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
-@font-face {
-  font-family: 'Nunito';
-  src: url('/fonts/Nunito-Variable.woff2') format('woff2');
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-
-@font-face {
-  font-family: 'Fredoka';
-  src: url('/fonts/Fredoka-Variable.woff2') format('woff2');
-  font-weight: 300 700;
-  font-style: normal;
-  font-display: swap;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ------------------------------------------------------------------ */
-/* Tema y reset — diseño mobile-first, botones grandes, uso a una mano */
+/* Tokens del sistema de estilos propio                                */
 /* ------------------------------------------------------------------ */
 
+/* Las pantallas que todavía no se migraron a Tailwind (Catálogo,
+   Clientes, Insumos, Recetas, Gastos, Tareas, Respaldo, Cuenta, Auth y
+   todos los modales) usan estas clases. Apuntando los tokens a la paleta
+   "Gourmet Elegante" adoptan el color, la tipografía y las sombras
+   nuevas sin tener que reescribirlas todas de una. */
 :root {
-  /* Paleta tomada de la mascota: la miga clara del pan como fondo, el
-     verde de la lechuga como color principal, el dorado del queso como
-     acento y el marrón del medallón para el texto sobre ese dorado.
-     Antes el acento era un verde lima que no existe en la hamburguesa. */
-  --color-fondo: #faf6ee;
+  --color-fondo: #FDFBF7;
   --color-superficie: #ffffff;
-  --color-texto: #241a12;
-  --color-texto-suave: #8c8175;
-  --color-borde: #ece3d6;
-  --color-marca: #0e4d34;
-  --color-marca-claro: #14603f;
-  --color-acento: #f5a623;
-  --color-acento-texto: #4a2a16;
-  --color-acento-suave: #fdeccb;
-  --color-primario: #0e4d34;
-  --color-primario-oscuro: #0a3a27;
-  --color-primario-suave: #dff3e4;
-  --color-alerta: #c23b2b;
-  --color-alerta-suave: #fbe4e0;
-  --color-exito: #2e8b57;
+  --color-texto: #1F2937;
+  --color-texto-suave: #6B7280;
+  --color-borde: #EFE8DE;
+  --color-marca: #9B1B30;
+  --color-marca-claro: #B32540;
+  --color-acento: #F59E0B;
+  --color-acento-texto: #1F2937;
+  --color-acento-suave: #FEF3C7;
+  --color-primario: #9B1B30;
+  --color-primario-oscuro: #7A1526;
+  --color-primario-suave: #FBEAED;
+  --color-alerta: #9B1B30;
+  --color-alerta-suave: #FBEAED;
+  --color-exito: #16A34A;
 
   --radio: 24px;
   --radio-chico: 16px;
   --radio-pill: 999px;
-  --sombra: 0 6px 20px rgba(14, 30, 24, 0.07);
-  --sombra-fuerte: 0 14px 30px rgba(9, 28, 20, 0.22);
-  --degradado-primario: linear-gradient(165deg, #17724a 0%, #0e4d34 55%, #092a1c 100%);
+  --sombra: 0 10px 40px -10px rgba(0, 0, 0, 0.06);
+  --sombra-fuerte: 0 20px 40px -15px rgba(155, 27, 48, 0.4);
+  --degradado-primario: linear-gradient(to bottom right, #9B1B30 0%, #7A1526 100%);
 
-  --nav-alto: 78px;
-  --fuente-base: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --fuente-titulos: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --fuente-logo: 'Baloo 2', var(--fuente-base);
-  --fuente-numeros: 'Fredoka', var(--fuente-base);
+  --nav-alto: 100px;
+  --fuente-base: 'Outfit', sans-serif;
+  --fuente-titulos: 'Outfit', sans-serif;
+  --fuente-logo: 'Outfit', sans-serif;
+  --fuente-numeros: 'Outfit', sans-serif;
   color-scheme: light;
 }
 
@@ -95,10 +86,6 @@ body,
 
 body {
   margin: 0;
-  font-family: var(--fuente-base);
-  background: var(--color-fondo);
-  color: var(--color-texto);
-  -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -116,16 +103,14 @@ h1,
 h2,
 h3 {
   font-family: var(--fuente-titulos);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-/* El logo va siempre en mayúscula */
 .marca {
   font-family: var(--fuente-logo);
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
 }
 
 /* ------------------------------------------------------------------ */
@@ -187,73 +172,6 @@ h3 {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-/* ------------------------------------------------------------------ */
-/* Bottom navigation                                                   */
-/* ------------------------------------------------------------------ */
-
-.bottom-nav {
-  position: fixed;
-  left: 50%;
-  bottom: env(safe-area-inset-bottom, 0px);
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 480px;
-  padding-bottom: 14px;
-  z-index: 20;
-}
-
-.bottom-nav__fila {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 64px;
-  padding: 0 8px;
-  border-radius: var(--radio-pill);
-  background: var(--color-superficie);
-  box-shadow: var(--sombra-fuerte);
-}
-
-.bottom-nav__item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border: none;
-  background: none;
-  color: var(--color-texto-suave);
-  font-size: 0.64rem;
-  font-weight: 600;
-  min-height: 48px;
-}
-
-.bottom-nav__item.is-active {
-  color: var(--color-primario);
-}
-
-.bottom-nav__central {
-  flex-shrink: 0;
-  width: 54px;
-  height: 54px;
-  margin: 0 2px;
-  border-radius: 50%;
-  border: none;
-  background: var(--color-acento);
-  color: var(--color-acento-texto);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 18px rgba(245, 166, 35, 0.45);
-  transform: translateY(-12px);
-}
-
-.bottom-nav__central.is-active {
-  background: var(--color-primario);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(9, 28, 20, 0.35);
 }
 
 /* ------------------------------------------------------------------ */
@@ -971,7 +889,7 @@ h3 {
 /* ------------------------------------------------------------------ */
 
 .page__content--venta {
-  padding-bottom: 96px; /* deja lugar para la barra del carrito */
+  padding-bottom: 210px; /* deja lugar para el panel de cobro y el menú flotante */
 }
 
 .chips {
@@ -2071,8 +1989,6 @@ h3 {
 .pantalla-centrada__marca h1 {
   font-family: var(--fuente-logo);
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
   font-size: 1.9rem;
   margin: 0;
 }
