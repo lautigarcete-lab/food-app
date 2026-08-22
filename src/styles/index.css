@@ -2,9 +2,30 @@
 /* Tipografías propias — autohospedadas para que funcionen 100% offline */
 /* ------------------------------------------------------------------ */
 
-/* Nunito para todo el texto y Fredoka para títulos y números grandes: las
-   dos son redondeadas y amigables. Antes los títulos usaban Fraunces, una
-   serif que chocaba con el resto y hacía ver la app anticuada. */
+/* Reparto de tipografías:
+   - Baloo 2 para el logo (en mayúscula): redondeada y gruesa.
+   - Playfair Display para los títulos: serif de alto contraste.
+   - Nunito para el texto corrido y Fredoka para los montos grandes, que
+     son los que hay que leer de reojo mientras se atiende.
+   Las cuatro son SIL OFL, libres para uso comercial. Se eligieron como
+   equivalentes de Boring Time y Mermaid, que son de uso personal y piden
+   licencia comercial para embeberlas en una app. */
+@font-face {
+  font-family: 'Baloo 2';
+  src: url('/fonts/Baloo2-Variable.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-Variable.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'Nunito';
   src: url('/fonts/Nunito-Variable.woff2') format('woff2');
@@ -51,8 +72,9 @@
 
   --nav-alto: 78px;
   --fuente-base: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --fuente-titulos: 'Fredoka', var(--fuente-base);
-  --fuente-logo: 'Fredoka', var(--fuente-base);
+  --fuente-titulos: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --fuente-logo: 'Baloo 2', var(--fuente-base);
+  --fuente-numeros: 'Fredoka', var(--fuente-base);
   color-scheme: light;
 }
 
@@ -89,13 +111,16 @@ h1,
 h2,
 h3 {
   font-family: var(--fuente-titulos);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
+/* El logo va siempre en mayúscula */
 .marca {
   font-family: var(--fuente-logo);
-  font-weight: 700;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 
 /* ------------------------------------------------------------------ */
@@ -392,11 +417,15 @@ h3 {
 .modal-sheet {
   width: 100%;
   max-width: 520px;
-  max-height: min(88dvh, 720px);
+  /* Antes tenía un tope de 720px: en pantallas altas la hoja quedaba
+     cortada a media pantalla, con un hueco raro abajo. Ahora se estira
+     hasta donde haga falta (sin tapar del todo lo de atrás). */
+  max-height: 92dvh;
   background: var(--color-fondo);
-  border-radius: 20px 20px 0 0;
+  border-radius: 24px 24px 0 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   animation: subir 0.18s ease-out;
 }
 
@@ -415,7 +444,28 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 8px;
+  gap: 8px;
+  padding: 16px 16px 10px;
+  /* Fijo arriba: en formularios largos (platos, recetas) el título se
+     perdía al scrollear y no se veía cómo cerrar. */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-fondo);
+  flex-shrink: 0;
+}
+
+/* Barrita de agarre, para que se lea como una hoja que se desliza */
+.modal-sheet__header::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-borde);
 }
 
 .modal-sheet__header h2 {
@@ -424,14 +474,19 @@ h3 {
 }
 
 .modal-sheet__body {
-  padding: 8px 16px 20px;
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-sheet__footer {
   padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
   border-top: 1px solid var(--color-borde);
   background: var(--color-superficie);
+  flex-shrink: 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -645,7 +700,7 @@ h3 {
 }
 
 .cierre-jornada__neto strong {
-  font-family: var(--fuente-logo);
+  font-family: var(--fuente-numeros);
   font-size: 1.3rem;
   color: var(--color-exito);
 }
@@ -1135,7 +1190,7 @@ h3 {
 }
 
 .barra-cobro-rapido__resumen strong {
-  font-family: var(--fuente-logo);
+  font-family: var(--fuente-numeros);
   font-size: 1.15rem;
 }
 
@@ -1196,7 +1251,7 @@ h3 {
 }
 
 .venta-ok strong {
-  font-family: var(--fuente-logo);
+  font-family: var(--fuente-numeros);
   font-size: 1.5rem;
 }
 
@@ -1257,7 +1312,7 @@ h3 {
   justify-content: center;
   font-weight: 700;
   flex-shrink: 0;
-  font-family: var(--fuente-logo);
+  font-family: var(--fuente-numeros);
 }
 
 .tarjeta-hero {
@@ -1283,7 +1338,7 @@ h3 {
 }
 
 .tarjeta-hero__monto {
-  font-family: var(--fuente-logo);
+  font-family: var(--fuente-numeros);
   font-size: 2.1rem;
   line-height: 1.15;
 }
@@ -1589,7 +1644,7 @@ h3 {
 }
 
 .tarjeta-deuda strong {
-  font-family: var(--fuente-logo);
+  font-family: var(--fuente-numeros);
   font-size: 1.8rem;
 }
 
@@ -1965,7 +2020,10 @@ h3 {
 
 .pantalla-centrada__marca h1 {
   font-family: var(--fuente-logo);
-  font-size: 1.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-size: 1.9rem;
   margin: 0;
 }
 

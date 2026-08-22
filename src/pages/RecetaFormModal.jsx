@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Modal from '../components/Modal.jsx';
+import InsumoFormModal from './InsumoFormModal.jsx';
 import { listarInsumos } from '../db/repositories/insumosRepo.js';
 import { listarCategorias } from '../db/repositories/platosRepo.js';
 import {
@@ -42,6 +43,7 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
   const [precioTocado, setPrecioTocado] = useState(false);
   const [categoria, setCategoria] = useState('');
 
+  const [creandoInsumo, setCreandoInsumo] = useState(false);
   const [lotes, setLotes] = useState('1');
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState('');
@@ -81,6 +83,21 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
   const precioSugerido = Math.round(costos.costoPorUnidad * (1 + margen / 100));
   const precioFinal = precioTocado ? toNumber(precio) : precioSugerido;
   const ganancia = precioFinal - costos.costoPorUnidad;
+
+  // Crear un insumo sin salir de la receta: si te olvidaste de cargar uno,
+  // lo hacés acá mismo y queda enganchado como una línea más.
+  async function handleInsumoCreado(resultado) {
+    const lista = await listarInsumos();
+    setInsumos(lista);
+    setCreandoInsumo(false);
+    const nuevo = resultado?.insumo;
+    if (nuevo) {
+      setLineas((prev) => [
+        ...prev,
+        { insumoId: nuevo.id, cantidad: '', unidad: opcionesDe(nuevo.unidad)[0].id },
+      ]);
+    }
+  }
 
   function agregarLinea() {
     if (insumos.length === 0) return;
@@ -193,6 +210,7 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
   }
 
   return (
+    <>
     <Modal titulo={esEdicion ? 'Editar receta' : 'Nueva receta'} onClose={onClose}>
       <form className="form" onSubmit={handleGuardar}>
         <label className="campo">
@@ -224,7 +242,16 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
         <div className="seccion-receta">
           <h3>Insumos que lleva</h3>
           {insumos.length === 0 ? (
-            <p className="ayuda-texto">Primero cargá insumos para poder armar la receta.</p>
+            <>
+              <p className="ayuda-texto">Todavía no tenés insumos cargados.</p>
+              <button
+                type="button"
+                className="btn btn--secundario btn--chico"
+                onClick={() => setCreandoInsumo(true)}
+              >
+                + Cargar un insumo
+              </button>
+            </>
           ) : (
             <>
               {lineas.map((linea, index) => {
@@ -269,9 +296,18 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
                   </div>
                 );
               })}
-              <button type="button" className="btn btn--secundario btn--chico" onClick={agregarLinea}>
-                + Agregar insumo
-              </button>
+              <div className="campo-fila">
+                <button type="button" className="btn btn--secundario btn--chico" onClick={agregarLinea}>
+                  + Agregar insumo
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--fantasma btn--chico"
+                  onClick={() => setCreandoInsumo(true)}
+                >
+                  + Insumo nuevo
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -418,5 +454,15 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
         </div>
       )}
     </Modal>
+
+    {creandoInsumo && (
+      <InsumoFormModal
+        insumo={null}
+        onClose={() => setCreandoInsumo(false)}
+        onGuardado={handleInsumoCreado}
+        onEliminado={() => setCreandoInsumo(false)}
+      />
+    )}
+    </>
   );
 }

@@ -142,7 +142,9 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
         // stock se mueve solo desde "Ajustar stock", que deja movimiento.
         await actualizarInsumo(insumo.id, comunes);
       } else {
-        await crearInsumo({ ...comunes, stock: calculo.cantidadBase });
+        const creado = await crearInsumo({ ...comunes, stock: calculo.cantidadBase });
+        onGuardado({ insumo: creado });
+        return;
       }
       onGuardado();
     } catch (err) {
@@ -226,19 +228,24 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
           <span className="etiqueta-grupo">¿Cómo lo comprás?</span>
           <div className="segmentado">
             <button type="button" className={modo === 'total' ? 'is-active' : ''} onClick={() => setModo('total')}>
-              Cantidad y precio
+              Por cantidad
             </button>
             <button type="button" className={modo === 'envase' ? 'is-active' : ''} onClick={() => setModo('envase')}>
               Por envase
             </button>
           </div>
+          <small className="ayuda-texto">
+            {modo === 'total'
+              ? 'Ej: compré 5 kg de carne y pagué $12.000 en total.'
+              : 'Ej: compré 2 envases de 900 ml y pagué $3.000 cada uno.'}
+          </small>
         </div>
 
         {modo === 'total' ? (
           <>
             <div className="campo-fila">
               <label className="campo">
-                <span>¿Cuánto compraste?</span>
+                <span>¿Qué cantidad compraste?</span>
                 <div className="campo-con-unidad">
                   <input
                     type="number"
@@ -266,7 +273,7 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
           <>
             <div className="campo-fila">
               <label className="campo">
-                <span>¿Cuántos envases?</span>
+                <span>¿Cuántos envases compraste?</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -276,7 +283,7 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
                 />
               </label>
               <label className="campo">
-                <span>Precio de cada envase ($)</span>
+                <span>¿Cuánto pagaste por cada envase? ($)</span>
                 <input
                   type="number"
                   inputMode="decimal"
