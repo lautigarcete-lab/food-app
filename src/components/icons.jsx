@@ -12,6 +12,24 @@ const base = {
   strokeLinejoin: 'round',
 };
 
+// Trazos de la hamburguesita, reutilizados por varios íconos. Están
+// dibujados dentro de la caja de 24x24 y se reescalan con <g transform>;
+// cada grupo lleva su propio strokeWidth para compensar la escala y que
+// todos los íconos terminen con el mismo grosor de línea.
+const PAN_ARRIBA = 'M4 10.6a8 8 0 0 1 16 0';
+const RELLENO = 'M3.7 13.2h16.6';
+const PAN_ABAJO = 'M4.2 15.9h15.6c0 2.3-1.7 3.9-3.9 3.9H8.1c-2.2 0-3.9-1.6-3.9-3.9Z';
+
+function Hamburguesa() {
+  return (
+    <>
+      <path d={PAN_ARRIBA} />
+      <path d={RELLENO} />
+      <path d={PAN_ABAJO} />
+    </>
+  );
+}
+
 export function IconInicio(props) {
   return (
     <svg {...base} {...props}>
@@ -35,23 +53,61 @@ export function IconVender(props) {
 }
 
 export function IconCatalogo(props) {
+  // Carta de menú: la tapa con el lomo a la izquierda y los renglones de
+  // los platos. Antes eran cuatro cuadraditos genéricos.
   return (
     <svg {...base} {...props}>
-      <rect x="3.5" y="3.5" width="7" height="7" rx="1.2" />
-      <rect x="13.5" y="3.5" width="7" height="7" rx="1.2" />
-      <rect x="3.5" y="13.5" width="7" height="7" rx="1.2" />
-      <rect x="13.5" y="13.5" width="7" height="7" rx="1.2" />
+      <path d="M6.5 3.2h11.8a1.6 1.6 0 0 1 1.6 1.6v14.4a1.6 1.6 0 0 1-1.6 1.6H6.5a2.3 2.3 0 0 1-2.3-2.3V5.5a2.3 2.3 0 0 1 2.3-2.3Z" />
+      <path d="M8.4 7.6h7.2" />
+      <path d="M8.4 11.2h7.2" />
+      <path d="M8.4 14.8h4.4" />
     </svg>
   );
 }
 
 export function IconClientes(props) {
+  // Dos hamburguesitas, una atrás y otra adelante: la misma idea que el
+  // clásico ícono de dos personitas, pero con el personaje de la app.
   return (
     <svg {...base} {...props}>
-      <circle cx="9" cy="8" r="3.2" />
-      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-      <circle cx="17.5" cy="9" r="2.6" />
-      <path d="M15.8 12.2a5.4 5.4 0 0 1 5.7 5.4" />
+      <g transform="translate(10.6 4.2) scale(0.54)" strokeWidth={3.7}>
+        <Hamburguesa />
+      </g>
+      <g transform="translate(-0.6 6.8) scale(0.58)" strokeWidth={3.4}>
+        <Hamburguesa />
+      </g>
+    </svg>
+  );
+}
+
+export function IconDeben(props) {
+  // Hamburguesita enojada: la hamburguesa entera, con cejas caídas y
+  // ojitos sobre el pan de arriba. Una versión anterior le dibujaba
+  // además la boca y le sacaba el relleno, y a tamaño chico el pan de
+  // abajo pasaba a leerse como una segunda boca: parecía una máscara y
+  // no una hamburguesa.
+  return (
+    <svg {...base} {...props}>
+      <path d={PAN_ARRIBA} />
+      <path d="M8.2 6.4l2.2 1.3" />
+      <path d="M15.8 6.4l-2.2 1.3" />
+      <path d="M9.7 9.4h.01" />
+      <path d="M14.3 9.4h.01" />
+      <path d={RELLENO} />
+      <path d={PAN_ABAJO} />
+    </svg>
+  );
+}
+
+export function IconContactar(props) {
+  // Hamburguesita con un celular al lado.
+  return (
+    <svg {...base} {...props}>
+      <g transform="translate(-1.4 3.4) scale(0.64)" strokeWidth={3.1}>
+        <Hamburguesa />
+      </g>
+      <rect x="15.4" y="3.4" width="6.4" height="10.6" rx="1.7" />
+      <path d="M17.7 5.6h1.8" />
     </svg>
   );
 }
