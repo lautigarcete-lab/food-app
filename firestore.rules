@@ -15,8 +15,7 @@ rules_version = '2';
 //
 // Collection: usuarios/{uid}
 //   - nombre: string (1-60) - nombre para mostrar
-//   - email: string (email válido, opcional) - debe coincidir con el token de auth
-//   - telefono: string (opcional) - debe coincidir con el token de auth
+//   - email: string (email válido) - debe coincidir con el token de auth
 //   - creadoEn: string ISO 8601 (inmutable)
 //   Documento privado: solo el dueño de la cuenta lo puede leer/escribir.
 //
@@ -180,16 +179,12 @@ service cloud.firestore {
     // -------------------------------------------------------------
 
     match /usuarios/{uid} {
-      // email y teléfono son opcionales y mutuamente independientes: con
-      // Google o correo+contraseña el usuario tiene email pero no teléfono,
-      // con inicio de sesión por teléfono es al revés. Cuando están
-      // presentes, tienen que coincidir con el token de auth.
       function isValidUsuario(data) {
-        return hasOnlyAllowedFields(data, ['nombre', 'email', 'telefono', 'creadoEn']) &&
-          hasRequiredFields(data, ['nombre', 'creadoEn']) &&
+        return hasOnlyAllowedFields(data, ['nombre', 'email', 'creadoEn']) &&
+          hasRequiredFields(data, ['nombre', 'email', 'creadoEn']) &&
           isValidString(data.nombre, 1, 60) &&
-          (!('email' in data) || (isValidEmail(data.email) && data.email == request.auth.token.email)) &&
-          (!('telefono' in data) || data.telefono == request.auth.token.phone_number) &&
+          isValidEmail(data.email) &&
+          data.email == request.auth.token.email &&
           isValidDateString(data.creadoEn);
       }
 

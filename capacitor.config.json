@@ -1,11 +1,5 @@
 {
   "appId": "com.foodtruck.pos",
   "appName": "Fudi POS",
-  "webDir": "dist",
-  "plugins": {
-    "FirebaseAuthentication": {
-      "skipNativeAuth": false,
-      "providers": ["google.com", "phone"]
-    }
-  }
+  "webDir": "dist"
 }
