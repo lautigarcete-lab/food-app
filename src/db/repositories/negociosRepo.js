@@ -6,8 +6,9 @@ import {
   signOut,
 } from 'firebase/auth';
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
-  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -16,7 +17,6 @@ import {
   getDocsFromCache,
   query,
   where,
-  writeBatch,
   updateDoc,
   setDoc,
 } from 'firebase/firestore';
@@ -42,49 +42,72 @@ async function obtenerDoc(ref) {
   }
 }
 
-/** Negocios a los que el usuario tiene acceso (dueño o con acceso), sin los archivados. */
+/**
+ * Negocios a los que el usuario tiene acceso (dueño o con acceso), sin los
+ * archivados.
+ *
+ * No se puede resolver con una consulta de grupo de colecciones sobre
+ * negocios/*\/miembros filtrando por uid (el enfoque más directo): Firestore
+ * evalúa las reglas de "list" contra el resultado *posible* de la consulta,
+ * no documento por documento, y no puede demostrar que la condición se
+ * cumple para cualquier negocioId posible ya que ese id varía en cada
+ * documento del grupo — rechaza la consulta entera aunque cada documento
+ * individual sí la cumpliría. Por eso negocios/{id} guarda además un
+ * miembrosUids (array de uids con acceso) y se consulta esa colección
+ * simple con array-contains, que Firestore sí puede validar para "list".
+ */
 export async function listarMisNegocios(uid) {
-  const q = query(collectionGroup(db, 'miembros'), where('uid', '==', uid));
+  const q = query(collection(db, 'negocios'), where('miembrosUids', 'array-contains', uid));
   const snap = await obtenerDocs(q);
 
   const negocios = await Promise.all(
-    snap.docs.map(async (miembroDoc) => {
-      const negocioRef = miembroDoc.ref.parent.parent;
-      const negocioSnap = await obtenerDoc(negocioRef);
-      if (!negocioSnap.exists()) return null;
-      const negocio = negocioSnap.data();
+    snap.docs.map(async (negocioDoc) => {
+      const negocio = negocioDoc.data();
+      if (negocio.archivado) return null;
+      const miembroSnap = await obtenerDoc(doc(db, 'negocios', negocioDoc.id, 'miembros', uid));
+      if (!miembroSnap.exists()) return null;
       return {
-        id: negocioRef.id,
+        id: negocioDoc.id,
         nombre: negocio.nombre,
-        archivado: Boolean(negocio.archivado),
-        rol: miembroDoc.data().rol,
+        archivado: false,
+        rol: miembroSnap.data().rol,
       };
     })
   );
 
-  return negocios.filter((n) => n && !n.archivado).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  return negocios.filter(Boolean).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
-/** Crea un negocio nuevo y de una vez asigna a quien lo crea como dueño. */
+/**
+ * Crea un negocio nuevo y de una vez asigna a quien lo crea como dueño.
+ *
+ * Esto NO puede ir en un solo writeBatch: la regla que permite crear el
+ * primer miembro (dueño) hace un get() del documento del negocio para
+ * comprobar quién lo creó, y ese get() solo ve datos ya confirmados en la
+ * base — dentro del mismo batch el negocio todavía no se guardó, así que
+ * ese get() no lo encuentra y Firestore rechaza todo el batch con "Missing
+ * or insufficient permissions". Por eso se guarda primero el negocio y,
+ * una vez confirmado, se agrega el miembro.
+ */
 export async function crearNegocio(nombre, uid) {
   const negocioId = generarId();
   const ahora = new Date().toISOString();
-  const batch = writeBatch(db);
 
-  batch.set(doc(db, 'negocios', negocioId), {
+  await setDoc(doc(db, 'negocios', negocioId), {
     nombre: nombre.trim(),
     creadoPor: uid,
     creadoEn: ahora,
     archivado: false,
+    miembrosUids: [uid],
   });
-  batch.set(doc(db, 'negocios', negocioId, 'miembros', uid), {
+
+  await setDoc(doc(db, 'negocios', negocioId, 'miembros', uid), {
     uid,
     rol: 'dueño',
     agregadoPor: uid,
     agregadoEn: ahora,
   });
 
-  await batch.commit();
   return { id: negocioId, nombre: nombre.trim(), rol: 'dueño', archivado: false };
 }
 
@@ -128,6 +151,10 @@ export async function agregarColaborador({ negocioId, nombre, email, password, a
       agregadoPor,
       agregadoEn: new Date().toISOString(),
     });
+    // miembrosUids es lo que listarMisNegocios consulta para saber a qué
+    // negocios pertenece cada quien (ver el comentario ahí); hay que
+    // mantenerlo en sync con la subcolección de miembros a mano.
+    await updateDoc(doc(db, 'negocios', negocioId), { miembrosUids: arrayUnion(nuevoUid) });
 
     return { uid: nuevoUid, nombre: nombre.trim(), rol: 'acceso' };
   } finally {
@@ -137,4 +164,5 @@ export async function agregarColaborador({ negocioId, nombre, email, password, a
 
 export async function quitarColaborador(negocioId, uid) {
   await deleteDoc(doc(db, 'negocios', negocioId, 'miembros', uid));
+  await updateDoc(doc(db, 'negocios', negocioId), { miembrosUids: arrayRemove(uid) });
 }

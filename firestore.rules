@@ -24,8 +24,10 @@ rules_version = '2';
 //   - creadoPor: string (uid, inmutable)
 //   - creadoEn: string ISO 8601 (inmutable)
 //   - archivado: bool
+//   - miembrosUids: array<string> (uids con acceso; duplica los ids de
+//     negocios/{negocioId}/miembros/* — ver comentario en ese match block)
 //   Cualquier miembro puede leer. Solo el dueño puede actualizar
-//   (nombre/archivado). No hay borrado físico, solo archivado.
+//   (nombre/archivado/miembrosUids). No hay borrado físico, solo archivado.
 //
 // Collection: negocios/{negocioId}/miembros/{uid}  (uid = id del documento)
 //   - uid: string (debe coincidir con el id del documento, inmutable)
@@ -201,23 +203,37 @@ service cloud.firestore {
     // -------------------------------------------------------------
 
     match /negocios/{negocioId} {
+      // miembrosUids duplica los ids de negocios/{negocioId}/miembros/* (que
+      // sigue siendo la fuente de verdad para el rol y el resto de los datos
+      // de cada miembro). Existe solo porque Firestore no puede demostrar
+      // que una consulta de grupo de colecciones (collectionGroup) sobre
+      // "miembros" es segura para "list": la condición de la regla
+      // dependería de negocioId, que varía en cada documento posible del
+      // grupo, así que Firestore rechaza la consulta entera de entrada. Acá,
+      // en cambio, "negocios" es una colección simple (no de grupo) y
+      // array-contains sí es un patrón que Firestore puede validar contra
+      // una regla de "list", así que listarMisNegocios consulta esto en vez
+      // de recorrer miembros.
       function isValidNegocioCreate(data) {
-        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
-          hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
+        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
+          hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
           isValidString(data.nombre, 1, 60) &&
           data.creadoPor == request.auth.uid &&
           isValidDateString(data.creadoEn) &&
-          data.archivado == false;
+          data.archivado == false &&
+          data.miembrosUids == [request.auth.uid];
       }
 
       function isValidNegocioUpdate(data) {
-        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
-          hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado']) &&
+        return hasOnlyAllowedFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
+          hasRequiredFields(data, ['nombre', 'creadoPor', 'creadoEn', 'archivado', 'miembrosUids']) &&
           isValidString(data.nombre, 1, 60) &&
-          data.archivado is bool;
+          data.archivado is bool &&
+          data.miembrosUids is list && data.miembrosUids.size() <= 50;
       }
 
-      allow read: if isMember(negocioId);
+      allow get: if isMember(negocioId);
+      allow list: if isSignedIn() && request.auth.uid in resource.data.miembrosUids;
       allow create: if isSignedIn() && isValidNegocioCreate(request.resource.data);
       allow update: if isOwnerOfNegocio(negocioId) &&
         isValidNegocioUpdate(request.resource.data) &&
@@ -248,7 +264,13 @@ service cloud.firestore {
             get(/databases/$(database)/documents/negocios/$(negocioId)).data.creadoPor == request.auth.uid;
         }
 
-        allow read: if isMember(negocioId);
+        // isMember(negocioId) alcanza para leer un miembro puntual o listar
+        // los miembros de UN negocio fijo (negocioId no cambia dentro de esa
+        // consulta, es el mismo para todo el resultado posible). Quién
+        // pertenece a qué negocios se resuelve aparte, consultando
+        // negocios.miembrosUids (ver el comentario en ese match block).
+        allow get: if isMember(negocioId);
+        allow list: if isMember(negocioId);
         allow create: if isSignedIn() && isValidMiembro(request.resource.data) &&
           (esAltaDeCreador() || (isOwnerOfNegocio(negocioId) && request.resource.data.rol == 'acceso'));
         allow update: if isOwnerOfNegocio(negocioId) &&
