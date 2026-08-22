@@ -1,12 +1,19 @@
-import { IconInicio, IconVender, IconCatalogo, IconClientes, IconMas } from './icons.jsx';
+import { IconInicio, IconVender, IconMas } from './icons.jsx';
+import BurgerMascot from './BurgerMascot.jsx';
+
+// Catálogo y Clientes usan la mascota (variantes 'catalogo' y 'clientes')
+// en vez de un ícono de línea, así que se envuelven para que reciban las
+// mismas props de tamaño que el resto.
+const MascotaCatalogo = (props) => <BurgerMascot size={props.width} variant="catalogo" />;
+const MascotaClientes = (props) => <BurgerMascot size={props.width} variant="clientes" />;
 
 const TABS_IZQ = [
   { id: 'inicio', label: 'Inicio', Icon: IconInicio },
-  { id: 'catalogo', label: 'Catálogo', Icon: IconCatalogo },
+  { id: 'catalogo', label: 'Catálogo', Icon: MascotaCatalogo },
 ];
 
 const TABS_DER = [
-  { id: 'clientes', label: 'Clientes', Icon: IconClientes },
+  { id: 'clientes', label: 'Clientes', Icon: MascotaClientes },
   { id: 'mas', label: 'Más', Icon: IconMas },
 ];
 
@@ -30,7 +37,7 @@ export default function BottomNav({ vistaActual, onCambiarVista }) {
             className={`bottom-nav__item${activo(id) ? ' is-active' : ''}`}
             onClick={() => onCambiarVista(id)}
           >
-            <Icon width={22} height={22} />
+            <Icon width={34} height={34} />
             <span>{label}</span>
           </button>
         ))}
@@ -51,7 +58,7 @@ export default function BottomNav({ vistaActual, onCambiarVista }) {
             className={`bottom-nav__item${activo(id) ? ' is-active' : ''}`}
             onClick={() => onCambiarVista(id)}
           >
-            <Icon width={22} height={22} />
+            <Icon width={34} height={34} />
             <span>{label}</span>
           </button>
         ))}

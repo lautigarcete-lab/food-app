@@ -7,7 +7,8 @@ import { listarClientes, crearCliente } from '../db/repositories/clientesRepo.js
 import { resumenDeClientes } from '../db/repositories/ventasRepo.js';
 import { formatMoney } from '../utils/money.js';
 import { diasDesde } from '../utils/fechas.js';
-import { IconMas2, IconClientes, IconDeben, IconContactar } from '../components/icons.jsx';
+import { IconMas2 } from '../components/icons.jsx';
+import BurgerMascot from '../components/BurgerMascot.jsx';
 
 // A partir de cuántos días sin comprar se marca a un cliente para
 // contactarlo. Un puesto de comida vende seguido: dos semanas sin
@@ -80,11 +81,11 @@ export default function ClientesPage() {
 
         <div className="segmentado segmentado--iconos">
           <button type="button" className={filtro === 'todos' ? 'is-active' : ''} onClick={() => setFiltro('todos')}>
-            <IconClientes width={20} height={20} />
+            <BurgerMascot size={36} variant="clientes" />
             Todos ({clientes.length})
           </button>
           <button type="button" className={filtro === 'deben' ? 'is-active' : ''} onClick={() => setFiltro('deben')}>
-            <IconDeben width={20} height={20} />
+            <BurgerMascot size={36} variant="deben" />
             Deben ({conDeuda.length})
           </button>
           <button
@@ -92,7 +93,7 @@ export default function ClientesPage() {
             className={filtro === 'contactar' ? 'is-active' : ''}
             onClick={() => setFiltro('contactar')}
           >
-            <IconContactar width={20} height={20} />
+            <BurgerMascot size={36} variant="contactar" />
             Contactar ({inactivos.length})
           </button>
         </div>
