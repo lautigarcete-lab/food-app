@@ -308,6 +308,9 @@ h3 {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  /* Sin esto, en una fila de dos campos la etiqueta larga empuja el campo
+     más allá del ancho de la pantalla y se corta el texto. */
+  min-width: 0;
 }
 
 .campo span {
@@ -359,7 +362,9 @@ h3 {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 50;
+  /* Por encima del menú flotante de abajo (z-50): con el mismo z-index la
+     píldora quedaba tapando el pie de la hoja y el botón de guardar. */
+  z-index: 100;
 }
 
 .modal-sheet {
@@ -434,7 +439,14 @@ h3 {
   padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
   border-top: 1px solid var(--color-borde);
   background: var(--color-superficie);
+  box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.12);
   flex-shrink: 0;
+}
+
+/* El pie tiene el botón principal siempre a la vista; el formulario no
+   necesita repetir ese margen abajo. */
+.modal-sheet__footer .campo-fila {
+  margin: 0;
 }
 
 /* ------------------------------------------------------------------ */

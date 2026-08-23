@@ -87,8 +87,16 @@ export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado
   }
 
   return (
-    <Modal titulo={esEdicion ? 'Editar plato' : 'Nuevo plato'} onClose={onClose}>
-      <form className="form" onSubmit={handleGuardar}>
+    <Modal
+      titulo={esEdicion ? 'Editar plato' : 'Nuevo plato'}
+      onClose={onClose}
+      footer={
+        <button type="submit" form="form-plato" className="btn btn--primario" disabled={guardando}>
+          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear plato'}
+        </button>
+      }
+    >
+      <form id="form-plato" className="form" onSubmit={handleGuardar}>
         <div className="foto-selector">
           {foto ? (
             <div className="foto-preview">
@@ -171,10 +179,6 @@ export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado
         </div>
 
         {error && <p className="mensaje-error">{error}</p>}
-
-        <button type="submit" className="btn btn--primario" disabled={guardando}>
-          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear plato'}
-        </button>
 
         {esEdicion && (
           <button type="button" className="btn btn--texto-peligro" onClick={handleEliminar}>

@@ -196,8 +196,16 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
   );
 
   return (
-    <Modal titulo={esEdicion ? 'Editar insumo' : 'Nuevo insumo'} onClose={onClose}>
-      <form className="form" onSubmit={handleGuardar}>
+    <Modal
+      titulo={esEdicion ? 'Editar insumo' : 'Nuevo insumo'}
+      onClose={onClose}
+      footer={
+        <button type="submit" form="form-insumo" className="btn btn--primario" disabled={guardando}>
+          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear insumo'}
+        </button>
+      }
+    >
+      <form id="form-insumo" className="form" onSubmit={handleGuardar}>
         <label className="campo">
           <span>Nombre del insumo</span>
           <input
@@ -273,7 +281,7 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
           <>
             <div className="campo-fila">
               <label className="campo">
-                <span>¿Cuántos envases compraste?</span>
+                <span>¿Cuántos envases?</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -283,7 +291,7 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
                 />
               </label>
               <label className="campo">
-                <span>¿Cuánto pagaste por cada envase? ($)</span>
+                <span>Precio de cada uno ($)</span>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -344,10 +352,6 @@ export default function InsumoFormModal({ insumo, onClose, onGuardado, onElimina
         )}
 
         {error && <p className="mensaje-error">{error}</p>}
-
-        <button type="submit" className="btn btn--primario" disabled={guardando}>
-          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear insumo'}
-        </button>
       </form>
 
       {esEdicion && (

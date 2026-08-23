@@ -211,8 +211,23 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
 
   return (
     <>
-    <Modal titulo={esEdicion ? 'Editar receta' : 'Nueva receta'} onClose={onClose}>
-      <form className="form" onSubmit={handleGuardar}>
+    <Modal
+      titulo={esEdicion ? 'Editar receta' : 'Nueva receta'}
+      onClose={onClose}
+      footer={
+        <div className="campo-fila">
+          <button type="submit" form="form-receta" className="btn btn--secundario" disabled={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar receta'}
+          </button>
+          {tipo === 'plato' && (
+            <button type="button" className="btn btn--primario" onClick={handleCrearPlato} disabled={guardando}>
+              {receta?.platoId ? 'Actualizar plato' : 'Crear plato'}
+            </button>
+          )}
+        </div>
+      }
+    >
+      <form id="form-receta" className="form" onSubmit={handleGuardar}>
         <label className="campo">
           <span>Nombre de la receta</span>
           <input
@@ -406,16 +421,6 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
           </div>
         )}
 
-        <div className="campo-fila">
-          <button type="submit" className="btn btn--secundario" disabled={guardando}>
-            {guardando ? 'Guardando…' : 'Guardar receta'}
-          </button>
-          {tipo === 'plato' && (
-            <button type="button" className="btn btn--primario" onClick={handleCrearPlato} disabled={guardando}>
-              {receta?.platoId ? 'Actualizar plato' : 'Crear plato'}
-            </button>
-          )}
-        </div>
       </form>
 
       {esEdicion && receta.tipo === 'preparacion' && receta.insumoId && (

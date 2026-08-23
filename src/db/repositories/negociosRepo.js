@@ -23,6 +23,7 @@ import {
 import { db, firebaseConfig } from '../../firebase/config.js';
 import { generarId } from '../../utils/id.js';
 import { COLOR_NEGOCIO_POR_DEFECTO, IDS_COLORES_NEGOCIO } from '../../utils/coloresNegocio.js';
+import { aCorreoInterno } from '../../utils/usuarios.js';
 
 // Sin conexión, esperar al servidor no tiene sentido: Firestore ya guarda
 // localmente lo último que se sincronizó desde este celular, así que ante
@@ -152,19 +153,23 @@ export async function listarMiembros(negocioId) {
 
 /**
  * Da de alta a un colaborador con acceso: crea una cuenta de Firebase Auth
- * nueva para esa persona (con el correo y contraseña que define el dueño) y
+ * nueva para esa persona (con el usuario y contraseña que define el dueño) y
  * lo agrega como miembro con rol "acceso".
+ *
+ * El "usuario" es del estilo "juan@rollofoodtruck" (nombre de la persona +
+ * nombre del negocio); aCorreoInterno lo convierte en algo que Firebase
+ * acepte. Nunca se le manda un mail a esa dirección.
  *
  * Usa una instancia secundaria de Firebase Auth (con el mismo proyecto) para
  * no pisar la sesión de quien está creando el acceso: crear un usuario con
  * el SDK de cliente inicia sesión automáticamente como ese usuario nuevo, y
  * acá no queremos que el dueño quede deslogueado de su propia cuenta.
  */
-export async function agregarColaborador({ negocioId, nombre, email, password, agregadoPor }) {
+export async function agregarColaborador({ negocioId, nombre, usuario, password, agregadoPor }) {
   const appSecundaria = initializeApp(firebaseConfig, `alta-colaborador-${Date.now()}`);
   const authSecundaria = getAuth(appSecundaria);
   try {
-    const cred = await createUserWithEmailAndPassword(authSecundaria, email.trim(), password);
+    const cred = await createUserWithEmailAndPassword(authSecundaria, aCorreoInterno(usuario), password);
     await updateAuthProfile(cred.user, { displayName: nombre.trim() });
 
     const nuevoUid = cred.user.uid;
@@ -177,6 +182,7 @@ export async function agregarColaborador({ negocioId, nombre, email, password, a
       uid: nuevoUid,
       rol: 'acceso',
       nombre: nombre.trim(),
+      usuario,
       agregadoPor,
       agregadoEn: new Date().toISOString(),
     });
@@ -185,7 +191,7 @@ export async function agregarColaborador({ negocioId, nombre, email, password, a
     // mantenerlo en sync con la subcolección de miembros a mano.
     await updateDoc(doc(db, 'negocios', negocioId), { miembrosUids: arrayUnion(nuevoUid) });
 
-    return { uid: nuevoUid, nombre: nombre.trim(), rol: 'acceso' };
+    return { uid: nuevoUid, nombre: nombre.trim(), usuario, rol: 'acceso' };
   } finally {
     await deleteApp(appSecundaria);
   }

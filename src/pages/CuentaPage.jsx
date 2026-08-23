@@ -4,6 +4,7 @@ import Header from '../components/Header.jsx';
 import NegocioAvatar from '../components/NegocioAvatar.jsx';
 import SelectorColorNegocio from '../components/SelectorColorNegocio.jsx';
 import { leerYRedimensionarImagen } from '../utils/image.js';
+import { usuarioDeAcceso } from '../utils/usuarios.js';
 import { useAuth, mensajeDeError } from '../auth/AuthContext.jsx';
 import { useNegocio } from '../negocio/NegocioContext.jsx';
 import {
@@ -21,7 +22,6 @@ export default function CuentaPage({ onVolver }) {
   const [cargando, setCargando] = useState(true);
   const [agregando, setAgregando] = useState(false);
   const [nombreNuevo, setNombreNuevo] = useState('');
-  const [emailNuevo, setEmailNuevo] = useState('');
   const [passwordNuevo, setPasswordNuevo] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
@@ -34,6 +34,7 @@ export default function CuentaPage({ onVolver }) {
   const inputFoto = useRef(null);
 
   const esDueño = negocioActivo?.rol === 'dueño';
+  const usuarioNuevo = usuarioDeAcceso(nombreNuevo, negocioActivo?.nombre);
 
   async function refrescar() {
     setCargando(true);
@@ -48,8 +49,16 @@ export default function CuentaPage({ onVolver }) {
 
   async function handleAgregar(e) {
     e.preventDefault();
-    if (!nombreNuevo.trim() || !emailNuevo.trim() || passwordNuevo.length < 6) {
-      setError('Completá nombre, correo y una contraseña de al menos 6 caracteres.');
+    if (!usuarioNuevo) {
+      setError('Ingresá el nombre de la persona.');
+      return;
+    }
+    if (passwordNuevo.length < 6) {
+      setError('La clave tiene que tener al menos 6 caracteres.');
+      return;
+    }
+    if (miembros.some((m) => usuarioDeAcceso(m.nombre, negocioActivo.nombre) === usuarioNuevo)) {
+      setError('Ya hay alguien con ese nombre. Usá otro (por ejemplo, con el apellido).');
       return;
     }
     setGuardando(true);
@@ -58,15 +67,14 @@ export default function CuentaPage({ onVolver }) {
       await agregarColaborador({
         negocioId: negocioActivo.id,
         nombre: nombreNuevo,
-        email: emailNuevo,
+        usuario: usuarioNuevo,
         password: passwordNuevo,
         agregadoPor: usuario.uid,
       });
+      setMensaje(`Acceso creado. Esa persona entra con "${usuarioNuevo}" y la clave que pusiste.`);
       setNombreNuevo('');
-      setEmailNuevo('');
       setPasswordNuevo('');
       setAgregando(false);
-      setMensaje('Acceso creado. Compartile el correo y la contraseña a esa persona.');
       await refrescar();
     } catch (err) {
       setError(err.code ? mensajeDeError(err) : err.message || mensajeDeError(err));
@@ -234,8 +242,10 @@ export default function CuentaPage({ onVolver }) {
                   <li key={m.uid}>
                     <div className="negocio-row">
                       <div className="negocio-row__info">
-                        <strong>{m.nombre || m.uid}</strong>
-                        <small>{m.rol === 'dueño' ? 'Control total (dueño)' : 'Con acceso'}</small>
+                        <strong>{m.nombre || (m.rol === 'dueño' ? 'Dueño' : m.uid)}</strong>
+                        <small>
+                          {m.rol === 'dueño' ? 'Control total (dueño)' : m.usuario || 'Con acceso'}
+                        </small>
                       </div>
                       {m.rol !== 'dueño' && (
                         <button type="button" className="icon-button" onClick={() => handleQuitar(m.uid)} aria-label="Quitar acceso">
@@ -257,16 +267,38 @@ export default function CuentaPage({ onVolver }) {
             ) : (
               <form className="form" onSubmit={handleAgregar}>
                 <label className="campo">
-                  <span>Nombre</span>
-                  <input value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} autoFocus />
+                  <span>Nombre de la persona</span>
+                  <input
+                    value={nombreNuevo}
+                    onChange={(e) => setNombreNuevo(e.target.value)}
+                    placeholder="Ej: Juan"
+                    autoFocus
+                  />
                 </label>
+
+                {/* El usuario se arma solo: nombre + @ + nombre del negocio.
+                    Así no hace falta que la persona tenga un correo. */}
+                <div className="bg-white rounded-2xl px-4 py-3 shadow-soft">
+                  <p className="text-xs font-bold text-fudi-muted uppercase tracking-wide">
+                    Entra con este usuario
+                  </p>
+                  <p className="text-base font-bold text-fudi-text mt-1 break-all">
+                    {usuarioNuevo || (
+                      <span className="text-fudi-muted/60 font-medium">
+                        escribí el nombre acá arriba
+                      </span>
+                    )}
+                  </p>
+                </div>
+
                 <label className="campo">
-                  <span>Correo</span>
-                  <input type="email" value={emailNuevo} onChange={(e) => setEmailNuevo(e.target.value)} />
-                </label>
-                <label className="campo">
-                  <span>Contraseña (mínimo 6 caracteres)</span>
-                  <input type="password" value={passwordNuevo} onChange={(e) => setPasswordNuevo(e.target.value)} />
+                  <span>Clave (mínimo 6 caracteres)</span>
+                  <input
+                    type="password"
+                    value={passwordNuevo}
+                    onChange={(e) => setPasswordNuevo(e.target.value)}
+                    placeholder="••••••••"
+                  />
                 </label>
                 {error && <p className="mensaje-error">{error}</p>}
                 <div className="campo-fila">

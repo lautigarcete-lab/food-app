@@ -82,8 +82,16 @@ export default function ComboFormModal({ combo, onClose, onGuardado, onEliminado
   }
 
   return (
-    <Modal titulo={esEdicion ? 'Editar combo' : 'Nuevo combo'} onClose={onClose}>
-      <form className="form" onSubmit={handleGuardar}>
+    <Modal
+      titulo={esEdicion ? 'Editar combo' : 'Nuevo combo'}
+      onClose={onClose}
+      footer={
+        <button type="submit" form="form-combo" className="btn btn--primario" disabled={guardando}>
+          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear combo'}
+        </button>
+      }
+    >
+      <form id="form-combo" className="form" onSubmit={handleGuardar}>
         <label className="campo">
           <span>Nombre del combo</span>
           <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Combo hamburguesa + papas" autoFocus />
@@ -140,10 +148,6 @@ export default function ComboFormModal({ combo, onClose, onGuardado, onEliminado
         </div>
 
         {error && <p className="mensaje-error">{error}</p>}
-
-        <button type="submit" className="btn btn--primario" disabled={guardando}>
-          {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear combo'}
-        </button>
 
         {esEdicion && (
           <button type="button" className="btn btn--texto-peligro" onClick={handleEliminar}>

@@ -15,7 +15,7 @@ export default function AuthPage() {
     e.preventDefault();
     setError('');
     if (!email.trim() || !password) {
-      setError('Completá el correo y la contraseña.');
+      setError(modo === 'crear' ? 'Completá el correo y la contraseña.' : 'Completá el usuario y la clave.');
       return;
     }
     if (modo === 'crear' && !nombre.trim()) {
@@ -59,7 +59,7 @@ export default function AuthPage() {
         <p className="text-sm font-medium text-fudi-muted mb-5">
           {modo === 'crear'
             ? 'Con tu correo y una contraseña alcanza.'
-            : 'Entrá con tu correo y contraseña.'}
+            : 'Con tu correo, o con el usuario que te dio el dueño del negocio.'}
         </p>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -73,16 +73,19 @@ export default function AuthPage() {
             />
           )}
           <CampoTexto
-            etiqueta="Correo"
-            type="email"
+            etiqueta={modo === 'crear' ? 'Correo' : 'Correo o usuario'}
+            type={modo === 'crear' ? 'email' : 'text'}
             inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
             value={email}
             onChange={setEmail}
-            placeholder="tu@correo.com"
+            placeholder={modo === 'crear' ? 'tu@correo.com' : 'tu@correo.com o juan@tunegocio'}
             autoFocus={modo === 'ingresar'}
           />
           <CampoTexto
-            etiqueta={`Contraseña${modo === 'crear' ? ' (mínimo 6 caracteres)' : ''}`}
+            etiqueta={modo === 'crear' ? 'Contraseña (mínimo 6 caracteres)' : 'Contraseña'}
             type="password"
             value={password}
             onChange={setPassword}

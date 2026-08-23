@@ -37,6 +37,9 @@ rules_version = '2';
 //   - uid: string (debe coincidir con el id del documento, inmutable)
 //   - rol: 'dueño' | 'acceso' (inmutable salvo que lo cambie un dueño)
 //   - nombre: string (1-60, opcional)
+//   - usuario: string (1-120, opcional) - con lo que esa persona inicia
+//     sesión ("juan@rollofoodtruck"); solo para mostrarlo, la cuenta real
+//     vive en Firebase Auth
 //   - agregadoPor: string (uid, inmutable)
 //   - agregadoEn: string ISO 8601 (inmutable)
 //   Cualquier miembro puede leer la lista de miembros de su negocio. Solo un
@@ -288,11 +291,12 @@ service cloud.firestore {
 
       match /miembros/{memberUid} {
         function isValidMiembro(data) {
-          return hasOnlyAllowedFields(data, ['uid', 'rol', 'nombre', 'agregadoPor', 'agregadoEn']) &&
+          return hasOnlyAllowedFields(data, ['uid', 'rol', 'nombre', 'usuario', 'agregadoPor', 'agregadoEn']) &&
             hasRequiredFields(data, ['uid', 'rol', 'agregadoPor', 'agregadoEn']) &&
             data.uid == memberUid &&
             data.rol in ['dueño', 'acceso'] &&
             isValidOptionalString(data, 'nombre', 1, 60) &&
+            isValidOptionalString(data, 'usuario', 1, 120) &&
             data.agregadoPor == request.auth.uid &&
             isValidDateString(data.agregadoEn);
         }

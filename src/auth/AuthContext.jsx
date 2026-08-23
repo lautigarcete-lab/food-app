@@ -8,16 +8,17 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config.js';
+import { aCorreoInterno } from '../utils/usuarios.js';
 
 const AuthContext = createContext(null);
 
 const ERRORES = {
   'auth/invalid-email': 'El correo no es válido.',
   'auth/user-disabled': 'Esta cuenta está deshabilitada.',
-  'auth/user-not-found': 'No hay ninguna cuenta con ese correo.',
+  'auth/user-not-found': 'No hay ninguna cuenta con ese correo o usuario.',
   'auth/wrong-password': 'La contraseña es incorrecta.',
-  'auth/invalid-credential': 'Correo o contraseña incorrectos.',
-  'auth/email-already-in-use': 'Ya existe una cuenta con ese correo.',
+  'auth/invalid-credential': 'Usuario o contraseña incorrectos.',
+  'auth/email-already-in-use': 'Ya existe una cuenta con ese correo o usuario.',
   'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
   'auth/too-many-requests': 'Demasiados intentos. Probá de nuevo en unos minutos.',
   'auth/network-request-failed': 'No hay conexión a internet.',
@@ -33,8 +34,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => onAuthStateChanged(auth, setUsuario), []);
 
+  // Acepta tanto un correo de verdad como el usuario corto que el dueño le
+  // arma al equipo ("juan@rollofoodtruck"): aCorreoInterno se encarga de
+  // convertirlo a lo que espera Firebase.
   async function iniciarSesion(email, password) {
-    await signInWithEmailAndPassword(auth, email.trim(), password);
+    await signInWithEmailAndPassword(auth, aCorreoInterno(email), password);
   }
 
   async function crearCuenta(nombre, email, password) {
