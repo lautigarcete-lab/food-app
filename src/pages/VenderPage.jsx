@@ -6,7 +6,9 @@ import CerrarVentaModal from './CerrarVentaModal.jsx';
 import CierreJornadaModal from './CierreJornadaModal.jsx';
 import { listarPlatos } from '../db/repositories/platosRepo.js';
 import { listarCombos } from '../db/repositories/combosRepo.js';
+import SelectorInteres from '../components/SelectorInteres.jsx';
 import { formatMoney } from '../utils/money.js';
+import { calcularRecargo, tieneInteres } from '../utils/interes.js';
 import { IconCerrar, IconCierre } from '../components/icons.jsx';
 
 const claveDe = (tipo, refId) => `${tipo}:${refId}`;
@@ -27,6 +29,9 @@ export default function VenderPage() {
   const [cobrando, setCobrando] = useState(false);
   const [cobroRapido, setCobroRapido] = useState(false);
   const [medioPagoRapido, setMedioPagoRapido] = useState('efectivo');
+  // Interés que se le suma al cobro con tarjeta / transferencia. Siempre
+  // arranca en cero: sumarlo tiene que ser una decisión de cada venta.
+  const [interes, setInteres] = useState(0);
   const [verCierre, setVerCierre] = useState(false);
 
   useEffect(() => {
@@ -55,6 +60,8 @@ export default function VenderPage() {
 
   const total = carrito.reduce((acc, item) => acc + item.precioUnitario * item.cantidad, 0);
   const cantidadTotal = carrito.reduce((acc, item) => acc + item.cantidad, 0);
+  const conInteres = tieneInteres(medioPagoRapido);
+  const recargo = conInteres ? calcularRecargo(total, interes) : 0;
 
   function agregar(tarjeta) {
     setCarrito((prev) => {
@@ -91,8 +98,18 @@ export default function VenderPage() {
 
   function handleVentaCerrada() {
     setCarrito([]);
+    setInteres(0);
     setCobrando(false);
     setCobroRapido(false);
+    setVerCarrito(false);
+  }
+
+  // Cancelar la venta entera. Pregunta antes: es un toque que borra todo el
+  // pedido armado y no hay forma de recuperarlo.
+  function cancelarVenta() {
+    if (carrito.length > 0 && !window.confirm('¿Cancelar la venta? Se borra todo el pedido.')) return;
+    setCarrito([]);
+    setInteres(0);
     setVerCarrito(false);
   }
 
@@ -185,12 +202,29 @@ export default function VenderPage() {
 
       {carrito.length > 0 && (
         <div className="fixed left-[var(--centro-col)] -translate-x-1/2 bottom-0 w-full max-w-[var(--ancho-col)] z-40 bg-white rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.08)] px-5 pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+112px)] lg:pb-6 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2 -mt-1">
+            <span className="text-xs font-bold text-fudi-muted uppercase tracking-wide">
+              Venta actual
+            </span>
+            <button
+              type="button"
+              onClick={cancelarVenta}
+              aria-label="Cancelar la venta"
+              className="w-9 h-9 -mr-1 rounded-full flex items-center justify-center text-fudi-muted active:bg-fudi-red/10 active:text-fudi-red shrink-0"
+            >
+              <IconCerrar width={20} height={20} />
+            </button>
+          </div>
+
           <div className="flex gap-2">
             {MEDIOS_PAGO_RAPIDO.map((m) => (
               <button
                 key={m.id}
                 type="button"
-                onClick={() => setMedioPagoRapido(m.id)}
+                onClick={() => {
+                  setMedioPagoRapido(m.id);
+                  setInteres(0);
+                }}
                 className={`flex-1 min-h-[40px] px-1 rounded-full border text-[11px] font-semibold whitespace-nowrap transition-colors ${
                   medioPagoRapido === m.id
                     ? 'bg-fudi-yellow/20 border-fudi-yellow text-fudi-text'
@@ -201,15 +235,21 @@ export default function VenderPage() {
               </button>
             ))}
           </div>
+
+          {conInteres && (
+            <SelectorInteres total={total} porcentaje={interes} onCambiar={setInteres} compacto />
+          )}
+
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setVerCarrito(true)}
               className="flex-1 flex flex-col items-start text-left bg-transparent border-0 p-0"
             >
-              <strong className="text-xl font-black text-fudi-text">{formatMoney(total)}</strong>
+              <strong className="text-xl font-black text-fudi-text">{formatMoney(total + recargo)}</strong>
               <small className="text-xs font-medium text-fudi-muted">
-                {cantidadTotal} {cantidadTotal === 1 ? 'ítem' : 'ítems'} · ver detalle
+                {cantidadTotal} {cantidadTotal === 1 ? 'ítem' : 'ítems'}
+                {recargo > 0 ? ` · con ${formatMoney(recargo)} de interés` : ''} · ver detalle
               </small>
             </button>
             <button
@@ -269,6 +309,7 @@ export default function VenderPage() {
           platos={platos}
           combos={combos}
           medioPagoInicial={cobroRapido ? medioPagoRapido : null}
+          interesInicial={cobroRapido ? interes : 0}
           autoConfirmar={cobroRapido}
           onCancelar={() => {
             setCobrando(false);

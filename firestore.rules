@@ -103,7 +103,9 @@ rules_version = '2';
 //   - fecha: string ISO 8601 (inmutable)
 //   - items: list de mapas {tipo, refId, nombre, precioUnitario, cantidad,
 //     subtotal}
-//   - total: number (>=0)
+//   - total: number (>=0) - ya incluye el recargo
+//   - recargo: number (>=0, opcional) - interés del cobro con tarjeta o
+//     transferencia, cuando se eligió trasladarlo
 //   - tipoPago: 'inmediato' | 'fiado'
 //   - medioPago: string|null
 //   - clienteId: string|null
@@ -499,8 +501,9 @@ service cloud.firestore {
 
         function isValidVenta(data) {
           return hasOnlyAllowedFields(data, [
-              'fecha', 'items', 'total', 'tipoPago', 'medioPago', 'clienteId', 'pagada', 'nota'
+              'fecha', 'items', 'total', 'recargo', 'tipoPago', 'medioPago', 'clienteId', 'pagada', 'nota'
             ]) &&
+            (!('recargo' in data) || isNonNegativeNumber(data.recargo)) &&
             hasRequiredFields(data, ['fecha', 'items', 'total', 'tipoPago', 'pagada']) &&
             isValidDateString(data.fecha) &&
             isValidItemsVenta(data.items) &&

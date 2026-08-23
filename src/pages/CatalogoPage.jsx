@@ -128,6 +128,11 @@ export default function CatalogoPage() {
           onClose={() => setModalPlato(null)}
           onGuardado={handleGuardadoPlato}
           onEliminado={handleEliminadoPlato}
+          onCambiarACombo={() => {
+            setModalPlato(null);
+            setTab('combos');
+            setModalCombo('nuevo');
+          }}
         />
       )}
 
@@ -137,6 +142,11 @@ export default function CatalogoPage() {
           onClose={() => setModalCombo(null)}
           onGuardado={handleGuardadoCombo}
           onEliminado={handleEliminadoCombo}
+          onCambiarAPlato={() => {
+            setModalCombo(null);
+            setTab('platos');
+            setModalPlato('nuevo');
+          }}
         />
       )}
     </div>

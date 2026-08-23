@@ -5,7 +5,7 @@ import { listarPlatos } from '../db/repositories/platosRepo.js';
 import { formatMoney, toNumber } from '../utils/money.js';
 import { IconCerrar } from '../components/icons.jsx';
 
-export default function ComboFormModal({ combo, onClose, onGuardado, onEliminado }) {
+export default function ComboFormModal({ combo, onClose, onGuardado, onEliminado, onCambiarAPlato }) {
   const esEdicion = Boolean(combo);
 
   const [nombre, setNombre] = useState(combo?.nombre || '');
@@ -92,6 +92,18 @@ export default function ComboFormModal({ combo, onClose, onGuardado, onEliminado
       }
     >
       <form id="form-combo" className="form" onSubmit={handleGuardar}>
+        {/* Vuelta al formulario de plato suelto, por si se entró acá de más. */}
+        {!esEdicion && onCambiarAPlato && (
+          <div className="segmentado">
+            <button type="button" onClick={onCambiarAPlato}>
+              Plato
+            </button>
+            <button type="button" className="is-active">
+              Combo
+            </button>
+          </div>
+        )}
+
         <label className="campo">
           <span>Nombre del combo</span>
           <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Combo hamburguesa + papas" autoFocus />

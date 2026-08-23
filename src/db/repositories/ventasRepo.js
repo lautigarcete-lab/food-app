@@ -63,7 +63,7 @@ export function detectarStockInsuficiente(items, platos, combos, insumos) {
   return faltantes;
 }
 
-export async function crearVenta({ items, tipoPago, medioPago, clienteId, nota }) {
+export async function crearVenta({ items, tipoPago, medioPago, clienteId, nota, recargo = 0 }) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('La venta no tiene ítems.');
   }
@@ -77,14 +77,20 @@ export async function crearVenta({ items, tipoPago, medioPago, clienteId, nota }
     subtotal: (Number(item.precioUnitario) || 0) * (Number(item.cantidad) || 0),
   }));
 
-  const total = itemsConSubtotal.reduce((acc, item) => acc + item.subtotal, 0);
   const esFiado = tipoPago === 'fiado';
+  // El interés del cobro con tarjeta o transferencia, si se decidió sumarlo.
+  // Un fiado no lo lleva: se cobra cuando se salda, y ahí se ve con qué.
+  const recargoFinal = esFiado ? 0 : Math.max(0, Number(recargo) || 0);
+  const subtotal = itemsConSubtotal.reduce((acc, item) => acc + item.subtotal, 0);
 
   const venta = {
     id: generarId(),
     fecha: new Date().toISOString(),
     items: itemsConSubtotal,
-    total,
+    // total = lo que se cobra de verdad, ya con el interés adentro, para que
+    // los cierres y el balance no tengan que rehacer la cuenta.
+    total: subtotal + recargoFinal,
+    recargo: recargoFinal,
     tipoPago: esFiado ? 'fiado' : 'inmediato',
     medioPago: esFiado ? null : medioPago || 'efectivo',
     clienteId: clienteId || null,

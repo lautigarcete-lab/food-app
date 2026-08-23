@@ -3,8 +3,10 @@ import Modal from '../components/Modal.jsx';
 import { crearVenta, detectarStockInsuficiente } from '../db/repositories/ventasRepo.js';
 import { listarClientes, crearCliente, obtenerCliente } from '../db/repositories/clientesRepo.js';
 import { listarInsumos } from '../db/repositories/insumosRepo.js';
+import SelectorInteres from '../components/SelectorInteres.jsx';
 import { generarNotaPedido, compartirNota } from '../utils/nota.js';
 import { formatMoney } from '../utils/money.js';
+import { calcularRecargo, tieneInteres } from '../utils/interes.js';
 import { IconAlerta } from '../components/icons.jsx';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -22,10 +24,12 @@ export default function CerrarVentaModal({
   onCancelar,
   onVentaCerrada,
   medioPagoInicial = null,
+  interesInicial = 0,
   autoConfirmar = false,
 }) {
   const [tipoPago, setTipoPago] = useState('inmediato');
   const [medioPago, setMedioPago] = useState(medioPagoInicial || 'efectivo');
+  const [interes, setInteres] = useState(interesInicial);
   const [clienteId, setClienteId] = useState('');
   const [nota, setNota] = useState('');
   const [clientes, setClientes] = useState([]);
@@ -63,6 +67,12 @@ export default function CerrarVentaModal({
     setError('');
   }
 
+  // Un fiado no lleva interés del cobro: todavía no se sabe con qué se va a
+  // pagar. Se define cuando se salda.
+  const conInteres = tipoPago === 'inmediato' && tieneInteres(medioPago);
+  const recargo = conInteres ? calcularRecargo(total, interes) : 0;
+  const totalCobrado = total + recargo;
+
   async function handleConfirmar() {
     if (tipoPago === 'fiado' && !clienteId) {
       setError('Elegí a nombre de quién queda el fiado.');
@@ -71,9 +81,18 @@ export default function CerrarVentaModal({
     setGuardando(true);
     setError('');
     try {
-      await crearVenta({ items, tipoPago, medioPago, clienteId: clienteId || null, nota });
+      await crearVenta({ items, tipoPago, medioPago, clienteId: clienteId || null, nota, recargo });
       const cliente = clienteId ? await obtenerCliente(clienteId) : null;
-      const texto = generarNotaPedido({ items, total, tipoPago, medioPago, cliente, nota, negocio: 'Fudi POS' });
+      const texto = generarNotaPedido({
+        items,
+        total: totalCobrado,
+        recargo,
+        tipoPago,
+        medioPago,
+        cliente,
+        nota,
+        negocio: 'Fudi POS',
+      });
       setVentaCerrada({ texto, cliente });
     } catch (err) {
       setError(err.message || 'No se pudo registrar la venta.');
@@ -144,7 +163,7 @@ export default function CerrarVentaModal({
 
   return (
     <Modal
-      titulo={`Cobrar ${formatMoney(total)}`}
+      titulo={`Cobrar ${formatMoney(totalCobrado)}`}
       onClose={onCancelar}
       footer={
         <button type="button" className="btn btn--primario" onClick={handleConfirmar} disabled={guardando}>
@@ -198,6 +217,10 @@ export default function CerrarVentaModal({
               </button>
             ))}
           </div>
+        )}
+
+        {conInteres && (
+          <SelectorInteres total={total} porcentaje={interes} onCambiar={setInteres} />
         )}
 
         <label className="campo">

@@ -6,7 +6,7 @@ import { leerYRedimensionarImagen } from '../utils/image.js';
 import { toNumber } from '../utils/money.js';
 import { IconCerrar } from '../components/icons.jsx';
 
-export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado }) {
+export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado, onCambiarACombo }) {
   const esEdicion = Boolean(plato);
 
   const [nombre, setNombre] = useState(plato?.nombre || '');
@@ -97,6 +97,19 @@ export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado
       }
     >
       <form id="form-plato" className="form" onSubmit={handleGuardar}>
+        {/* Al crear se puede cambiar de idea sin salir: un combo es lo mismo,
+            pero juntando platos que ya existen con un precio de promo. */}
+        {!esEdicion && onCambiarACombo && (
+          <div className="segmentado">
+            <button type="button" className="is-active">
+              Plato
+            </button>
+            <button type="button" onClick={onCambiarACombo}>
+              Combo
+            </button>
+          </div>
+        )}
+
         <div className="foto-selector">
           {foto ? (
             <div className="foto-preview">

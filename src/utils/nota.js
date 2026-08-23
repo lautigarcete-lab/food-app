@@ -18,7 +18,7 @@ const ETIQUETA_MEDIO_PAGO = {
  * Se usa texto simple (sin tablas ni markdown raro) porque WhatsApp solo
  * respeta *negrita* y saltos de línea.
  */
-export function generarNotaPedido({ items, total, tipoPago, medioPago, cliente, nota, negocio = 'Pedido' }) {
+export function generarNotaPedido({ items, total, recargo = 0, tipoPago, medioPago, cliente, nota, negocio = 'Pedido' }) {
   const lineas = [];
   lineas.push(`*${negocio}* — ${formatoFecha.format(new Date())}`);
   if (cliente?.nombre) lineas.push(`Cliente: ${cliente.nombre}`);
@@ -30,6 +30,10 @@ export function generarNotaPedido({ items, total, tipoPago, medioPago, cliente, 
   });
 
   lineas.push('');
+  if (recargo > 0) {
+    lineas.push(`Subtotal: ${formatMoney(total - recargo)}`);
+    lineas.push(`Interés del cobro: ${formatMoney(recargo)}`);
+  }
   lineas.push(`*Total: ${formatMoney(total)}*`);
 
   if (tipoPago === 'fiado') {
