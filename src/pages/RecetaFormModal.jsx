@@ -12,6 +12,8 @@ import {
   crearPlatoDesdeReceta,
   sincronizarInsumoDePreparacion,
   registrarProduccion,
+  recetasQueUsan,
+  dejarDeSerBase,
 } from '../db/repositories/recetasRepo.js';
 import { formatMoney, toNumber } from '../utils/money.js';
 import { aBase, desdeBase, etiquetaBase, formatearCantidad, opcionesDe } from '../utils/unidades.js';
@@ -43,6 +45,12 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
   const [precioTocado, setPrecioTocado] = useState(false);
   const [categoria, setCategoria] = useState('');
 
+  // Una receta "base" existe además como insumo, así se puede meter dentro
+  // de otras recetas (la cookie base adentro de la cookie con chips). Las
+  // preparaciones lo son siempre; un plato solo si se marca.
+  const [usarComoBase, setUsarComoBase] = useState(Boolean(receta?.insumoId));
+  const [usos, setUsos] = useState([]);
+
   const [creandoInsumo, setCreandoInsumo] = useState(false);
   const [lotes, setLotes] = useState('1');
   const [guardando, setGuardando] = useState(false);
@@ -64,8 +72,21 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
       }
     });
     listarCategorias().then(setCategorias).catch(() => {});
+    if (receta?.insumoId) {
+      recetasQueUsan(receta.insumoId, { excepto: receta.id }).then(setUsos).catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const esBase = tipo === 'preparacion' || usarComoBase;
+
+  // Una receta no se puede llevar a sí misma como ingrediente.
+  const insumosDisponibles = useMemo(
+    () => insumos.filter((i) => i.id !== receta?.insumoId),
+    [insumos, receta]
+  );
+  const preparaciones = insumosDisponibles.filter((i) => i.esPreparacion);
+  const comprados = insumosDisponibles.filter((i) => !i.esPreparacion);
 
   // Para calcular hace falta la receta con las cantidades ya en unidad base.
   const recetaNormalizada = useMemo(
@@ -100,8 +121,8 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
   }
 
   function agregarLinea() {
-    if (insumos.length === 0) return;
-    const primero = insumos[0];
+    if (insumosDisponibles.length === 0) return;
+    const primero = insumosDisponibles[0];
     setLineas((prev) => [
       ...prev,
       { insumoId: primero.id, cantidad: '', unidad: opcionesDe(primero.unidad)[0].id },
@@ -147,6 +168,16 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
     return crearReceta(datos);
   }
 
+  // Una base solo sirve si además existe como insumo: eso es lo que la hace
+  // aparecer en la lista de ingredientes de las demás recetas.
+  async function sincronizarBase(guardada) {
+    if (esBase) {
+      await sincronizarInsumoDePreparacion(guardada, insumos);
+    } else if (guardada.insumoId) {
+      await dejarDeSerBase(guardada);
+    }
+  }
+
   async function handleGuardar(e) {
     e.preventDefault();
     const problema = validar();
@@ -158,11 +189,7 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
     setError('');
     try {
       const guardada = await guardarReceta();
-      // Una preparación solo sirve si además existe como insumo, para poder
-      // usarla dentro de otras recetas.
-      if (guardada.tipo === 'preparacion') {
-        await sincronizarInsumoDePreparacion(guardada, insumos);
-      }
+      await sincronizarBase(guardada);
       onGuardado();
     } catch (err) {
       setError(err.message || 'No se pudo guardar la receta.');
@@ -185,6 +212,7 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
     setError('');
     try {
       const guardada = await guardarReceta();
+      await sincronizarBase(guardada);
       await crearPlatoDesdeReceta(guardada, { precio: precioFinal, categoria });
       onGuardado();
     } catch (err) {
@@ -252,11 +280,51 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
               </button>
             ))}
           </div>
+          <small className="ayuda-texto">
+            {tipo === 'plato'
+              ? 'Sale del horno y se vende tal cual.'
+              : 'No se vende sola: es un paso que después usás en otras recetas.'}
+          </small>
         </div>
+
+        {/* Marcarla como base la deja disponible como ingrediente del resto
+            de las recetas. Es lo que permite armar "cookie base" una sola vez
+            y meterla en la de chips y en la rellena. */}
+        {tipo === 'plato' && (
+          <label className="bg-white rounded-2xl p-4 shadow-soft flex gap-3 items-start cursor-pointer">
+            <input
+              type="checkbox"
+              checked={usarComoBase}
+              onChange={(e) => setUsarComoBase(e.target.checked)}
+              className="mt-1 w-5 h-5 shrink-0 accent-[#9B1B30]"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold text-fudi-text">
+                Usarla también dentro de otras recetas
+              </span>
+              <span className="block text-xs font-medium text-fudi-muted mt-1">
+                Queda disponible como ingrediente, con su costo por unidad ya calculado.
+              </span>
+            </span>
+          </label>
+        )}
+
+        {esBase && (
+          <div className="bg-fudi-yellow/10 rounded-2xl p-4">
+            <p className="text-xs font-bold text-fudi-muted uppercase tracking-wide">
+              Se usa como ingrediente en
+            </p>
+            <p className="text-sm font-semibold text-fudi-text mt-1">
+              {usos.length > 0
+                ? usos.map((r) => r.nombre).join(', ')
+                : 'Todavía en ninguna. Cuando armes otra receta la vas a encontrar en la lista de ingredientes.'}
+            </p>
+          </div>
+        )}
 
         <div className="seccion-receta">
           <h3>Insumos que lleva</h3>
-          {insumos.length === 0 ? (
+          {insumosDisponibles.length === 0 ? (
             <>
               <p className="ayuda-texto">Todavía no tenés insumos cargados.</p>
               <button
@@ -277,12 +345,22 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
                       value={linea.insumoId}
                       onChange={(e) => actualizarLinea(index, { insumoId: e.target.value })}
                     >
-                      {insumos.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.nombre}
-                          {i.esPreparacion ? ' (prep.)' : ''}
-                        </option>
-                      ))}
+                      {/* Las bases van primero y en su propio grupo: son las
+                          que más cuesta encontrar mezcladas con la compra. */}
+                      {preparaciones.length > 0 && (
+                        <optgroup label="Bases y preparaciones">
+                          {preparaciones.map((i) => (
+                            <option key={i.id} value={i.id}>{i.nombre}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {comprados.length > 0 && (
+                        <optgroup label="Insumos comprados">
+                          {comprados.map((i) => (
+                            <option key={i.id} value={i.id}>{i.nombre}</option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
                     <input
                       type="number"
@@ -423,7 +501,7 @@ export default function RecetaFormModal({ receta, onClose, onGuardado, onElimina
 
       </form>
 
-      {esEdicion && receta.tipo === 'preparacion' && receta.insumoId && (
+      {esEdicion && receta.insumoId && (
         <div className="seccion-ajuste">
           <h3>Registrar preparación</h3>
           <p className="ayuda-texto">

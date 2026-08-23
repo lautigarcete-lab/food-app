@@ -1,7 +1,13 @@
 import { getAll, getById, put } from '../firestoreDb.js';
 import { generarId } from '../../utils/id';
 import { crearPlato, actualizarPlato } from './platosRepo.js';
-import { crearInsumo, actualizarInsumo, ajustarStock, obtenerInsumo } from './insumosRepo.js';
+import {
+  crearInsumo,
+  actualizarInsumo,
+  ajustarStock,
+  obtenerInsumo,
+  eliminarInsumo,
+} from './insumosRepo.js';
 
 const STORE = 'recetas';
 
@@ -10,13 +16,21 @@ const STORE = 'recetas';
 //  - 'plato': rinde N porciones de algo que se vende tal cual (ej: "rinde
 //    10 hamburguesas"). Sirve para crear el plato ya costeado.
 //  - 'preparacion': rinde una cantidad de algo que después se usa como
-//    ingrediente de otras recetas (ej: una salsa que rinde 2 litros). Al
-//    guardarla se crea/actualiza un insumo con su costo por unidad, así
-//    la salsa se puede usar igual que cualquier insumo comprado.
+//    ingrediente de otras recetas (ej: una salsa que rinde 2 litros).
+//
+// Cualquiera de los dos tipos puede además marcarse como "base": eso le
+// crea un insumo con su costo por unidad, y así la receta se puede usar como
+// ingrediente de otras. Ej: "Cookie base" adentro de "Cookie con chips" y de
+// "Cookie rellena". Una receta de tipo 'preparacion' es siempre base (para
+// eso existe); una de tipo 'plato' lo es solo si se marca.
 export const TIPOS_RECETA = [
-  { id: 'plato', label: 'Plato para vender' },
-  { id: 'preparacion', label: 'Preparación (se usa en otras recetas)' },
+  { id: 'plato', label: 'Se vende así' },
+  { id: 'preparacion', label: 'Es una base' },
 ];
+
+export function esBase(receta) {
+  return receta?.tipo === 'preparacion' || Boolean(receta?.insumoId);
+}
 
 export async function listarRecetas({ soloActivas = true } = {}) {
   const recetas = await getAll(STORE);
@@ -78,6 +92,40 @@ export async function actualizarReceta(id, cambios) {
 
 export async function eliminarReceta(id) {
   return actualizarReceta(id, { activa: false });
+}
+
+/**
+ * Recetas que llevan como ingrediente el insumo dado. Se usa para mostrar
+ * "esta base se usa en…" y para no dejar sacar una base que otras recetas
+ * están usando.
+ */
+export async function recetasQueUsan(insumoId, { excepto } = {}) {
+  if (!insumoId) return [];
+  const recetas = await listarRecetas();
+  return recetas.filter(
+    (r) => r.id !== excepto && (r.ingredientes || []).some((l) => l.insumoId === insumoId)
+  );
+}
+
+/**
+ * Deja de usar la receta como base: da de baja el insumo que la representaba
+ * y le saca el vínculo. Solo si ninguna otra receta la está usando, porque
+ * si no esas recetas quedarían con un ingrediente fantasma.
+ */
+export async function dejarDeSerBase(receta) {
+  if (!receta?.insumoId) return;
+  const usos = await recetasQueUsan(receta.insumoId, { excepto: receta.id });
+  if (usos.length > 0) {
+    throw new Error(`No se puede sacar: la usan ${usos.map((r) => r.nombre).join(', ')}.`);
+  }
+  await eliminarInsumo(receta.insumoId);
+
+  // insumoId es opcional en las reglas pero no acepta null, así que se
+  // guarda el documento sin esa clave en vez de vaciarla.
+  const actual = await obtenerReceta(receta.id);
+  if (!actual) return;
+  const { insumoId, ...resto } = actual;
+  await put(STORE, { ...resto, actualizadoEn: new Date().toISOString() });
 }
 
 function normalizarIngredientes(ingredientes) {

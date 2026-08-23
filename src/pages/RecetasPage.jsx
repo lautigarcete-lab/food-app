@@ -42,7 +42,9 @@ export default function RecetasPage({ onVolver }) {
       <div className="page__content">
         <p className="ayuda-texto">
           Cargá los insumos que lleva cada receta y cuánto rinde: Fudi calcula lo que sale cada
-          unidad y desde ahí podés crear el plato con su precio.
+          unidad y desde ahí podés crear el plato con su precio. Una receta también puede ser
+          <strong> base de otras</strong>: armás la cookie base una vez y la usás como ingrediente
+          en la de chips y en la rellena.
         </p>
 
         {cargando ? (
@@ -64,7 +66,8 @@ export default function RecetasPage({ onVolver }) {
                       <small>
                         {receta.tipo === 'plato'
                           ? `Rinde ${receta.rinde} ${receta.rinde === 1 ? 'porción' : 'porciones'}`
-                          : `Preparación · rinde ${formatearCantidad(receta.rinde, receta.unidadRinde)}`}
+                          : `Base · rinde ${formatearCantidad(receta.rinde, receta.unidadRinde)}`}
+                        {receta.tipo === 'plato' && receta.insumoId ? ' · también base' : ''}
                         {receta.platoId ? ' · plato creado' : ''}
                       </small>
                     </div>
