@@ -20,3 +20,4 @@ android/capacitor-cordova-android-plugins/build/
 android/captures/
 *.iml
 .idea/
+.firebase/
