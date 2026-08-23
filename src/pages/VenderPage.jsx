@@ -184,7 +184,7 @@ export default function VenderPage() {
       </div>
 
       {carrito.length > 0 && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[520px] z-40 bg-white rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.08)] px-5 pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+112px)] flex flex-col gap-3">
+        <div className="fixed left-[var(--centro-col)] -translate-x-1/2 bottom-0 w-full max-w-[var(--ancho-col)] z-40 bg-white rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.08)] px-5 pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+112px)] lg:pb-6 flex flex-col gap-3">
           <div className="flex gap-2">
             {MEDIOS_PAGO_RAPIDO.map((m) => (
               <button

@@ -37,7 +37,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-fudi-bg font-sans flex flex-col">
+    <div className="min-h-screen bg-fudi-bg font-sans flex flex-col w-full max-w-[520px] mx-auto">
       {/* Cabecera con la misma tarjeta bordó del inicio */}
       <div className="px-6 pt-14 pb-2">
         <div className="bg-gradient-to-br from-fudi-red to-fudi-red-dark rounded-[32px] p-8 text-white relative overflow-hidden shadow-soft">

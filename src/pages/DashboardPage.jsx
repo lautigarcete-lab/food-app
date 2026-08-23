@@ -96,9 +96,9 @@ export default function DashboardPage({ setView }) {
   ];
 
   return (
-    <div className="min-h-screen bg-fudi-bg pb-32 font-sans">
+    <div className="min-h-screen bg-fudi-bg pb-32 lg:pb-10 lg:pt-2 font-sans">
       {/* Header */}
-      <div className="px-6 pt-12 pb-4 flex justify-between items-center">
+      <div className="px-6 pt-12 lg:pt-6 pb-4 flex justify-between items-center">
         <div className="flex items-center gap-4 min-w-0">
           <NegocioAvatar negocio={negocioActivo} size={56} />
           <div className="min-w-0">
@@ -137,7 +137,7 @@ export default function DashboardPage({ setView }) {
       {/* Acciones Rápidas */}
       <div className="px-6 mt-8">
         <h3 className="text-lg font-bold text-fudi-text mb-4">Acciones Rápidas</h3>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-4 max-w-[420px]">
           {acciones.map((action, idx) => (
             <div key={idx} className="flex flex-col items-center gap-2 cursor-pointer" onClick={action.action}>
               <div className={`w-16 h-16 ${action.bg} rounded-[24px] flex items-center justify-center shadow-sm transition-transform active:scale-95`}>

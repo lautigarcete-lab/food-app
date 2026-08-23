@@ -1,0 +1,17 @@
+{
+  "name": "Fudi POS",
+  "short_name": "Fudi",
+  "description": "Tu caja registradora de bolsillo: ventas, insumos, recetas y clientes.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#FDFBF7",
+  "categories": ["business", "productivity", "food"],
+  "icons": [
+    { "src": "/icons/fudi-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/fudi-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/fudi-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

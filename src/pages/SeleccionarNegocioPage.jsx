@@ -45,7 +45,7 @@ export default function SeleccionarNegocioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-fudi-bg font-sans flex flex-col">
+    <div className="min-h-screen bg-fudi-bg font-sans flex flex-col w-full max-w-[520px] mx-auto">
       <div className="px-6 pt-14 pb-2">
         <div className="bg-gradient-to-br from-fudi-red to-fudi-red-dark rounded-[32px] p-8 text-white relative overflow-hidden shadow-soft">
           <div className="absolute -right-8 -top-8 w-40 h-40 bg-fudi-yellow rounded-full opacity-90"></div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav.jsx';
+import SideNav from './components/SideNav.jsx';
 import FudiLogo from './components/FudiLogo.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import VenderPage from './pages/VenderPage.jsx';
@@ -27,6 +28,7 @@ function AppPrincipal() {
 
   return (
     <div className="app-shell">
+      <SideNav vistaActual={vista} onCambiarVista={setVista} />
       <main className="app-main">
         {vista === 'inicio' && <DashboardPage setView={setVista} />}
         {vista === 'vender' && <VenderPage />}
@@ -40,7 +42,9 @@ function AppPrincipal() {
         {vista === 'respaldo' && <RespaldoPage onVolver={volverAMas} />}
         {vista === 'cuenta' && <CuentaPage onVolver={volverAMas} />}
       </main>
-      <BottomNav vistaActual={vista} onCambiarVista={setVista} />
+      <div className="lg:hidden">
+        <BottomNav vistaActual={vista} onCambiarVista={setVista} />
+      </div>
     </div>
   );
 }
