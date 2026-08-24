@@ -68,6 +68,14 @@ body {
 
   --nav-alto: 100px;
 
+  /* Margen seguro arriba y abajo (barra de estado, botones de navegación,
+     muesca de la cámara). En el navegador lo informa env(safe-area-inset-*);
+     dentro de la APK, Android no expone la barra de navegación por ahí, así
+     que MainActivity las inyecta como --inset-*. Se toma la mayor de las dos
+     para que sirva igual en los dos lados. */
+  --sat: max(env(safe-area-inset-top, 0px), var(--inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--inset-bottom, 0px));
+
   /* Centro y ancho de la columna de contenido. En el celular es toda la
      pantalla; en PC hay un menú lateral de 240px a la izquierda, así que el
      centro se corre 120px. Los elementos con position:fixed (el botón +, el
@@ -142,6 +150,18 @@ h3 {
 /* Layout general                                                     */
 /* ------------------------------------------------------------------ */
 
+/* La app se dibuja por debajo de la barra de estado (ver MainActivity), así
+   que el contenido tiene que empezar más abajo. Solo las pantallas que
+   cuelgan directo de la raíz: las de adentro ya viven dentro del shell. */
+.app-shell,
+#root > .min-h-screen {
+  padding-top: var(--sat);
+}
+
+#root > .min-h-screen {
+  min-height: 100dvh;
+}
+
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -155,7 +175,7 @@ h3 {
 .app-main {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: calc(var(--nav-alto) + env(safe-area-inset-bottom, 0px) + 16px);
+  padding-bottom: calc(var(--nav-alto) + var(--sab) + 16px);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -237,7 +257,7 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) 12px 14px;
+  padding: calc(var(--sat) + 14px) 12px 14px;
   background: var(--color-fondo);
   position: sticky;
   top: 0;
@@ -351,7 +371,7 @@ h3 {
 .fab {
   position: fixed;
   right: calc(50% - 260px + 20px);
-  bottom: calc(var(--nav-alto) + env(safe-area-inset-bottom, 0px) + 16px);
+  bottom: calc(var(--nav-alto) + var(--sab) + 16px);
   width: 58px;
   height: 58px;
   border-radius: 50%;
@@ -505,7 +525,7 @@ h3 {
 }
 
 .modal-sheet__body {
-  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  padding: 8px 16px calc(var(--sab) + 20px);
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -514,7 +534,7 @@ h3 {
 }
 
 .modal-sheet__footer {
-  padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  padding: 12px 16px calc(var(--sab) + 16px);
   border-top: 1px solid var(--color-borde);
   background: var(--color-superficie);
   box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.12);
@@ -1082,7 +1102,7 @@ h3 {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(var(--nav-alto) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--nav-alto) + var(--sab));
   width: 100%;
   max-width: 520px;
   display: flex;
@@ -1213,7 +1233,7 @@ h3 {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(var(--nav-alto) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--nav-alto) + var(--sab));
   width: 100%;
   max-width: 520px;
   display: flex;
@@ -1337,7 +1357,7 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 18px) 16px 6px;
+  padding: calc(var(--sat) + 18px) 16px 6px;
 }
 
 .inicio-header__saludo {
@@ -2072,7 +2092,7 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 24px 20px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  padding: 24px 20px calc(var(--sab) + 24px);
   max-width: 420px;
   margin: 0 auto;
 }

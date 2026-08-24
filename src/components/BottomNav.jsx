@@ -17,7 +17,11 @@ const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 
 
 export default function BottomNav({ vistaActual, onCambiarVista }) {
   return (
-    <div className="fixed bottom-6 left-6 right-6 z-50 mx-auto max-w-[472px]">
+    <div
+      // Por encima de los botones de navegación del sistema, no debajo.
+      style={{ bottom: 'calc(1.5rem + var(--sab))' }}
+      className="fixed left-6 right-6 z-50 mx-auto max-w-[472px]"
+    >
       <div className="bg-fudi-red rounded-full px-6 py-4 flex justify-between items-center shadow-float">
         {NAV.map((item) => {
           const Icon = item.icon;

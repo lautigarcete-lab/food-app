@@ -201,7 +201,7 @@ export default function VenderPage() {
       </div>
 
       {carrito.length > 0 && (
-        <div className="fixed left-[var(--centro-col)] -translate-x-1/2 bottom-0 w-full max-w-[var(--ancho-col)] z-40 bg-white rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.08)] px-5 pt-5 pb-[calc(env(safe-area-inset-bottom,0px)+112px)] lg:pb-6 flex flex-col gap-3">
+        <div className="fixed left-[var(--centro-col)] -translate-x-1/2 bottom-0 w-full max-w-[var(--ancho-col)] z-40 bg-white rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.08)] px-5 pt-5 pb-[calc(var(--sab)+112px)] lg:pb-6 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2 -mt-1">
             <span className="text-xs font-bold text-fudi-muted uppercase tracking-wide">
               Venta actual
