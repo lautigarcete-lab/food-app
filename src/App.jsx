@@ -11,6 +11,7 @@ import InsumosPage from './pages/InsumosPage.jsx';
 import RecetasPage from './pages/RecetasPage.jsx';
 import GastosPage from './pages/GastosPage.jsx';
 import TareasPage from './pages/TareasPage.jsx';
+import MetasPage from './pages/MetasPage.jsx';
 import RespaldoPage from './pages/RespaldoPage.jsx';
 import CuentaPage from './pages/CuentaPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
@@ -39,6 +40,7 @@ function AppPrincipal() {
         {vista === 'recetas' && <RecetasPage onVolver={volverAMas} />}
         {vista === 'gastos' && <GastosPage onVolver={volverAMas} />}
         {vista === 'tareas' && <TareasPage onVolver={volverAMas} />}
+        {vista === 'metas' && <MetasPage onVolver={volverAMas} />}
         {vista === 'respaldo' && <RespaldoPage onVolver={volverAMas} />}
         {vista === 'cuenta' && <CuentaPage onVolver={volverAMas} />}
       </main>

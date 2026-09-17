@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ArrowDownRight, ArrowUpRight, Plus, ShoppingBag, PieChart, Box } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Plus, ShoppingBag, PieChart, Box, Target } from 'lucide-react';
 import NegocioAvatar from '../components/NegocioAvatar.jsx';
 import CierreJornadaModal from './CierreJornadaModal.jsx';
 import { useNegocio } from '../negocio/NegocioContext.jsx';
 import { totalesDeVentas, listarVentas } from '../db/repositories/ventasRepo.js';
 import { totalGastos, listarGastos, etiquetaCategoria } from '../db/repositories/gastosRepo.js';
 import { listarTareas } from '../db/repositories/organizacionRepo.js';
+import { PERIODOS_META, listarMetas, progresoDeMeta } from '../db/repositories/metasRepo.js';
+import { BarraMeta } from './MetasPage.jsx';
 import { formatMoney } from '../utils/money.js';
 import { rangoDelPeriodo, formatearHora, esHoy, formatearFechaCorta, finDelDia } from '../utils/fechas.js';
 
@@ -33,6 +35,8 @@ export default function DashboardPage({ setView }) {
   const [cargando, setCargando] = useState(true);
   const [verCierre, setVerCierre] = useState(false);
   const [recordatorio, setRecordatorio] = useState(null);
+  const [metas, setMetas] = useState([]);
+  const [periodoMeta, setPeriodoMeta] = useState('mes');
 
   useEffect(() => {
     let cancelado = false;
@@ -83,10 +87,23 @@ export default function DashboardPage({ setView }) {
       })
       .catch(() => {});
 
+    // Metas de venta: se muestra el avance de las que estén cargadas.
+    listarMetas()
+      .then(async (lista) => {
+        const avances = await Promise.all(
+          lista.map(async (m) => ({ ...(await progresoDeMeta(m.id, m.monto)) }))
+        );
+        if (!cancelado) setMetas(avances);
+      })
+      .catch(() => {});
+
     return () => {
       cancelado = true;
     };
   }, []);
+
+  // Si solo hay una meta cargada se muestra esa, sin selector.
+  const metaVisible = metas.find((m) => m.periodo === periodoMeta) || metas[0] || null;
 
   const acciones = [
     { name: 'Vender', icon: Plus, color: 'text-fudi-red', bg: 'bg-red-50', action: () => setView('vender') },
@@ -132,6 +149,86 @@ export default function DashboardPage({ setView }) {
             <p className="text-sm font-bold tracking-widest opacity-80">Abierto</p>
           </div>
         </div>
+      </div>
+
+      {/* Meta de ventas */}
+      <div className="px-6 mt-6">
+        {metaVisible ? (
+          <button
+            type="button"
+            onClick={() => setView('metas')}
+            className="w-full text-left bg-white rounded-[28px] p-5 shadow-soft"
+          >
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-base font-bold text-fudi-text">
+                {metaVisible.periodo === 'dia' ? 'Meta de hoy' : 'Meta del mes'}
+              </h3>
+              {metas.length > 1 && (
+                <div className="flex gap-1 shrink-0">
+                  {PERIODOS_META.map((p) => (
+                    <span
+                      key={p.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPeriodoMeta(p.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setPeriodoMeta(p.id);
+                        }
+                      }}
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer ${
+                        periodoMeta === p.id
+                          ? 'bg-fudi-red text-white'
+                          : 'bg-fudi-red/5 text-fudi-muted'
+                      }`}
+                    >
+                      {p.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <BarraMeta avance={metaVisible} />
+
+            <p className="text-xs font-medium text-fudi-muted mt-3">
+              {metaVisible.cumplida ? (
+                <>Llevás {formatMoney(metaVisible.cobrado)}. Todo lo que venga es de más.</>
+              ) : metaVisible.periodo === 'dia' ? (
+                <>Te faltan {formatMoney(metaVisible.falta)} para cerrar el día.</>
+              ) : (
+                <>
+                  Te faltan {formatMoney(metaVisible.falta)} en {metaVisible.diasRestantes}{' '}
+                  {metaVisible.diasRestantes === 1 ? 'día' : 'días'}:{' '}
+                  {formatMoney(metaVisible.porDia)} por día.
+                </>
+              )}
+            </p>
+          </button>
+        ) : (
+          !cargando && (
+            <button
+              type="button"
+              onClick={() => setView('metas')}
+              className="w-full flex items-center gap-3 bg-white rounded-[28px] p-5 shadow-soft text-left"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center text-fudi-red shrink-0">
+                <Target size={22} strokeWidth={2.5} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-fudi-text">Poné una meta de ventas</p>
+                <p className="text-xs font-medium text-fudi-muted mt-0.5">
+                  Y mirá acá cuánto te falta para llegar.
+                </p>
+              </div>
+            </button>
+          )
+        )}
       </div>
 
       {/* Acciones Rápidas */}

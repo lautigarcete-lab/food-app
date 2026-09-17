@@ -20,6 +20,7 @@ export const NOMBRES_STORES = [
   'gastos',
   'tareas',
   'publicaciones',
+  'metas',
 ];
 
 function coleccion(store) {

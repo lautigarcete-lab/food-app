@@ -13,7 +13,7 @@ const NAV = [
   { id: 'ajustes', vista: 'mas', icon: Settings, label: 'Ajustes' },
 ];
 
-const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'respaldo', 'cuenta']);
+const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'metas', 'respaldo', 'cuenta']);
 
 export default function SideNav({ vistaActual, onCambiarVista }) {
   const { negocioActivo } = useNegocio();

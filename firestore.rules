@@ -124,6 +124,12 @@ rules_version = '2';
 //   - nota: string (0-200)
 //   - fecha: string ISO 8601 (inmutable)
 //
+// Collection: negocios/{negocioId}/metas/{id}   (id = 'dia' | 'mes')
+//   - monto: number (>0) - meta de ventas cobradas para ese período
+//   - actualizadoEn: string ISO 8601
+//   Hay una meta por período como mucho, por eso el id del documento es el
+//   período en vez de un id generado.
+//
 // Collection: negocios/{negocioId}/gastos/{id}
 //   - monto: number (>=0)
 //   - categoria: 'insumos' | 'servicios' | 'otros'
@@ -588,6 +594,20 @@ service cloud.firestore {
         allow create: if isMember(negocioId) && isValidTarea(request.resource.data);
         allow update: if isMember(negocioId) && isValidTarea(request.resource.data) && unchanged('creadoEn');
         allow delete: if isMember(negocioId);
+      }
+
+      match /metas/{periodo} {
+        function isValidMeta(data) {
+          return hasOnlyAllowedFields(data, ['monto', 'actualizadoEn']) &&
+            hasRequiredFields(data, ['monto', 'actualizadoEn']) &&
+            data.monto is number && data.monto > 0 &&
+            isValidDateString(data.actualizadoEn);
+        }
+
+        allow read: if isMember(negocioId);
+        allow write: if isMember(negocioId) &&
+          periodo in ['dia', 'mes'] &&
+          (request.method == 'delete' || isValidMeta(request.resource.data));
       }
 
       match /publicaciones/{id} {

@@ -13,7 +13,7 @@ const NAV = [
 ];
 
 // Las sub-vistas cuelgan de Ajustes y lo dejan marcado como activo.
-const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'respaldo', 'cuenta']);
+const GRUPO_AJUSTES = new Set(['mas', 'insumos', 'recetas', 'gastos', 'tareas', 'metas', 'respaldo', 'cuenta']);
 
 export default function BottomNav({ vistaActual, onCambiarVista }) {
   return (

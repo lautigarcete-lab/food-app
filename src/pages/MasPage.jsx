@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Header from '../components/Header.jsx';
 import CierreJornadaModal from './CierreJornadaModal.jsx';
+import { Target } from 'lucide-react';
 import { IconInsumos,
   IconRecetas, IconGastos, IconTareas, IconRespaldo, IconCierre, IconCuenta } from '../components/icons.jsx';
 
@@ -8,6 +9,7 @@ const OPCIONES = [
   { id: 'insumos', label: 'Insumos', descripcion: 'Stock, mínimos y mermas', Icon: IconInsumos, tono: 'tono-verde' },
   { id: 'recetas', label: 'Recetas', descripcion: 'Costo por porción y crear platos', Icon: IconRecetas, tono: 'tono-dorado' },
   { id: 'gastos', label: 'Gastos', descripcion: 'Registro de gastos del negocio', Icon: IconGastos, tono: 'tono-rojo' },
+  { id: 'metas', label: 'Metas', descripcion: 'Cuánto te proponés vender por día y por mes', Icon: Target, tono: 'tono-rojo' },
   { id: 'cierre', label: 'Cierre de jornada', descripcion: 'Balance del día por medio de pago', Icon: IconCierre, tono: 'tono-dorado' },
   { id: 'tareas', label: 'Organización', descripcion: 'Tareas y calendario de publicaciones', Icon: IconTareas, tono: 'tono-verde' },
   { id: 'respaldo', label: 'Respaldo', descripcion: 'Guardar y restaurar todos tus datos', Icon: IconRespaldo, tono: 'tono-verde' },
