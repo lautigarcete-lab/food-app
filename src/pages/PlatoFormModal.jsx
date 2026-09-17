@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from '../components/Modal.jsx';
 import { crearPlato, actualizarPlato, eliminarPlato, listarCategorias } from '../db/repositories/platosRepo.js';
 import { listarInsumos } from '../db/repositories/insumosRepo.js';
+import { calcularCostos } from '../db/repositories/recetasRepo.js';
 import { leerYRedimensionarImagen } from '../utils/image.js';
-import { toNumber } from '../utils/money.js';
+import { formatMoney, toNumber } from '../utils/money.js';
 import { IconCerrar } from '../components/icons.jsx';
+
+const MARGENES = [50, 70, 100, 150];
 
 export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado, onCambiarACombo }) {
   const esEdicion = Boolean(plato);
@@ -19,10 +22,41 @@ export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
 
+  const [margen, setMargen] = useState(70);
+  // Al editar ya hay un precio puesto: no se pisa con la sugerencia. Al
+  // crear, el campo muestra lo sugerido hasta que se escriba algo a mano.
+  const [precioTocado, setPrecioTocado] = useState(Boolean(plato));
+
   useEffect(() => {
     listarInsumos().then(setInsumosDisponibles).catch(() => {});
     listarCategorias().then(setCategorias).catch(() => {});
   }, []);
+
+  // Las cantidades del plato ya están por porción (a diferencia de una
+  // receta, que va por lote), así que se reusa el mismo cálculo con rinde 1.
+  const recetaValida = useMemo(
+    () =>
+      receta
+        .filter((l) => l.insumoId && toNumber(l.cantidad) > 0)
+        .map((l) => ({ insumoId: l.insumoId, cantidad: toNumber(l.cantidad) })),
+    [receta]
+  );
+
+  const costos = useMemo(
+    () => calcularCostos({ ingredientes: recetaValida, rinde: 1 }, insumosDisponibles),
+    [recetaValida, insumosDisponibles]
+  );
+
+  const costo = costos.costoPorUnidad;
+  const precioSugerido = Math.round(costo * (1 + margen / 100));
+  const precioFinal = precioTocado ? toNumber(precio) : precioSugerido;
+  const ganancia = precioFinal - costo;
+
+  function elegirMargen(m) {
+    setMargen(m);
+    setPrecioTocado(false);
+    setPrecio('');
+  }
 
   async function handleFoto(e) {
     const file = e.target.files?.[0];
@@ -54,19 +88,15 @@ export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado
       setError('Ingresá un nombre.');
       return;
     }
-    if (toNumber(precio) <= 0) {
+    if (precioFinal <= 0) {
       setError('Ingresá un precio válido.');
       return;
     }
     setGuardando(true);
     setError('');
 
-    const recetaValida = receta
-      .filter((l) => l.insumoId && toNumber(l.cantidad) > 0)
-      .map((l) => ({ insumoId: l.insumoId, cantidad: toNumber(l.cantidad) }));
-
     try {
-      const datos = { nombre, precio: toNumber(precio), categoria, foto, receta: recetaValida };
+      const datos = { nombre, precio: precioFinal, categoria, foto, receta: recetaValida };
       if (esEdicion) {
         await actualizarPlato(plato.id, datos);
       } else {
@@ -134,7 +164,16 @@ export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado
         <div className="campo-fila">
           <label className="campo">
             <span>Precio</span>
-            <input type="number" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="$ 0" />
+            <input
+              type="number"
+              inputMode="decimal"
+              value={precioTocado ? precio : precioSugerido || ''}
+              onChange={(e) => {
+                setPrecio(e.target.value);
+                setPrecioTocado(true);
+              }}
+              placeholder="$ 0"
+            />
           </label>
           <label className="campo">
             <span>Categoría</span>
@@ -190,6 +229,52 @@ export default function PlatoFormModal({ plato, onClose, onGuardado, onEliminado
             </>
           )}
         </div>
+
+        {/* Con la receta cargada ya se sabe cuánto cuesta el plato, así que
+            Fudi propone a cuánto venderlo — lo mismo que hace la pantalla de
+            recetas, pero para el plato que se carga a mano. */}
+        {recetaValida.length > 0 && (
+          <div className="bloque-precio">
+            <h3>Cuánto cuesta y a cuánto venderlo</h3>
+
+            <div className="costo-calculado">
+              <small>Te cuesta hacerlo</small>
+              <strong>{formatMoney(costo)}</strong>
+              {costos.incompleta && (
+                <small className="texto-negativo">
+                  Ojo: hay insumos sin precio cargado, el costo real es mayor.
+                </small>
+              )}
+            </div>
+
+            <div className="chips">
+              {MARGENES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={!precioTocado && margen === m ? 'is-active' : ''}
+                  onClick={() => elegirMargen(m)}
+                >
+                  +{m}%
+                </button>
+              ))}
+            </div>
+
+            <p className="ayuda-texto">
+              {precioTocado ? (
+                <>
+                  Con {formatMoney(precioFinal)} ganás <strong>{formatMoney(ganancia)}</strong>
+                  {costo > 0 && ` (${Math.round((ganancia / costo) * 100)}% sobre el costo)`}.
+                </>
+              ) : (
+                <>
+                  Precio sugerido: <strong>{formatMoney(precioSugerido)}</strong> — ya quedó puesto
+                  arriba. Ganás {formatMoney(ganancia)} por unidad.
+                </>
+              )}
+            </p>
+          </div>
+        )}
 
         {error && <p className="mensaje-error">{error}</p>}
 

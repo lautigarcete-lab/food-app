@@ -1,6 +1,6 @@
 // Generado en cada build. No editar a mano.
 const CACHE = 'fudi-jsassetsindexBQcxHLwEcss';
-const PRECACHE = ["/","/assets/index-BKb4YF8X.js","/assets/index-BQcxHLwE.css","/favicon.svg","/fonts/Outfit-Variable.woff2","/icons/apple-touch-icon.png","/icons/fudi-192.png","/icons/fudi-512.png","/icons/fudi-maskable-512.png","/manifest.webmanifest"];
+const PRECACHE = ["/","/assets/index-5ZkS8D4y.js","/assets/index-BQcxHLwE.css","/favicon.svg","/fonts/Outfit-Variable.woff2","/icons/apple-touch-icon.png","/icons/fudi-192.png","/icons/fudi-512.png","/icons/fudi-maskable-512.png","/manifest.webmanifest"];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
